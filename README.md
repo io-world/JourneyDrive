@@ -1,24 +1,28 @@
 # JourneyCapture
 
-Lets an MCP-aware AI assistant see and drive a real Windows desktop — take
+Lets an MCP-aware AI assistant see and drive a real Windows or Mac desktop — take
 screenshots, move the mouse, click, and type — the same way a human would, so it can
 carry out on-screen tasks in apps that have no API of their own. Remote-controls
-Windows desktops (mouse, keyboard, screenshots) through three components:
+desktops (mouse, keyboard, screenshots) through four components:
 
 ```
-MCP client  --stdio/HTTP-->  MCP server  --HTTP-->  broker  <--WebSocket--  thin client(s)
+MCP client  --stdio/HTTP-->  MCP server  --HTTP-->  broker  <--WebSocket--  Windows thin client(s)
+                                                            <--WebSocket--  macOS thin client(s)
 ```
 
-- **Thin client** (`journeycapture`) — runs on each Windows box, drives the mouse/
-  keyboard/screenshots there. Connects *out* to the broker; doesn't accept inbound
-  connections.
+- **Windows thin client** (`journeycapture`) — runs on each Windows box, drives the
+  mouse/keyboard/screenshots there. Connects *out* to the broker; doesn't accept
+  inbound connections.
+- **macOS thin client** (`journeycapture-mac`) — the same role for a Mac. Same wire
+  protocol, same broker, addressed independently by its own `machine_id`.
 - **Broker** (`journeycapture-broker`) — routes requests to whichever machine they're
-  addressed to. One broker can relay to many thin clients at once.
+  addressed to, regardless of which OS agent is behind that id. One broker can relay
+  to many thin clients at once.
 - **MCP server** (`journeycapture-mcp`) — exposes the broker's API as MCP tools for
   an MCP-aware assistant.
 
-Each runs on its own machine (thin client: the Windows box; broker and MCP server:
-typically the controller machine, though nothing requires that).
+Each runs on its own machine (thin clients: the Windows/Mac box; broker and MCP
+server: typically the controller machine, though nothing requires that).
 
 Set these up in order: the broker first (everything else connects to it), then the
 thin client(s), then the MCP server.
@@ -75,22 +79,31 @@ or trusting* the broker are eligible for this — credentials and the broker's o
 address always stay local. See [docs/BROKER.md](docs/BROKER.md)'s "Broker-pushed
 config" section for the full design.
 
-## Running the thin client from source
+## Running a thin client from source
 
 ```
 uv sync
 cp examples/config.example.json config.json
 # edit config.json: set broker_host/machine_id/api_key to match the broker's config
-uv run journeycapture
+uv run journeycapture      # Windows agent
+uv run journeycapture-mac  # macOS agent
 ```
 
-Config is loaded from (in order): `--config PATH`, the `JOURNEYCAPTURE_CONFIG` env
-var, or `config.json` next to the executable/CWD.
+Same config shape for both — `broker_host`/`machine_id`/`api_key` just need to match
+an entry in the broker's own config. Config is loaded from (in order): `--config
+PATH`, the `JOURNEYCAPTURE_CONFIG` env var, or `config.json` next to the
+executable/CWD.
 
-## Building the Windows executable
+## Building the standalone executables
 
-See [docs/WINDOWS_BUILD.md](docs/WINDOWS_BUILD.md) — must be built on Windows.
-Manual verification checklist: [docs/WINDOWS_SMOKE_TEST.md](docs/WINDOWS_SMOKE_TEST.md).
+Windows: see [docs/WINDOWS_BUILD.md](docs/WINDOWS_BUILD.md) — must be built on
+Windows. Manual verification checklist:
+[docs/WINDOWS_SMOKE_TEST.md](docs/WINDOWS_SMOKE_TEST.md).
+
+macOS: see [docs/MACOS_BUILD.md](docs/MACOS_BUILD.md) — must be built on a Mac, and
+needs a one-time Accessibility/Screen Recording permission grant (can't be
+scripted). Manual verification checklist:
+[docs/MACOS_SMOKE_TEST.md](docs/MACOS_SMOKE_TEST.md).
 
 ## MCP server
 
@@ -106,9 +119,10 @@ parameter every tool takes, and wiring it into an MCP client.
 
 The broker doesn't care what OS or language an agent is written in — only that it
 speaks its WebSocket protocol and always connects *out* to the broker, never the
-reverse. See [docs/THIN_AGENT_PLAYBOOK.md](docs/THIN_AGENT_PLAYBOOK.md) for the exact
-wire protocol and a recipe for writing a Linux/macOS/other agent that plugs into
-this same broker alongside `journeycapture_windows_thinclient`.
+reverse. `journeycapture_mac_thinclient` is a worked example of this: a second,
+independent agent added with zero changes to the broker or MCP server. See
+[docs/THIN_AGENT_PLAYBOOK.md](docs/THIN_AGENT_PLAYBOOK.md) for the exact wire
+protocol and the recipe for writing a Linux/other agent the same way.
 
 ## Dependencies
 

@@ -14,6 +14,7 @@ config.json
 mcp_config.json
 broker_config.json
 thinclient_config.json
+mac_thinclient_config.json
 .mcp.json
 *.log
 *.spec

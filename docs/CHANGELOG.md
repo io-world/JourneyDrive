@@ -2,6 +2,48 @@
 
 Notable changes to JourneyCapture, newest first. Commit hashes refer to `main`.
 
+## 2026-08-23 — Add `journeycapture_mac_thinclient`, a second agent for macOS
+
+Built following `docs/THIN_AGENT_PLAYBOOK.md`'s own recipe for adding a new agent
+OS — the first real use of that playbook since it was written. The broker and MCP
+server needed **zero code changes**: both agents speak the identical wire protocol
+described in the playbook's §1, addressed independently by `machine_id`.
+
+- New top-level package `src/journeycapture_mac_thinclient/` (`capture.py`,
+  `input_control.py`, `config.py`, `schemas.py`, `logging_setup.py`, `ws_client.py`,
+  `server.py`) — near-identical to `journeycapture_windows_thinclient`'s modules,
+  duplicated rather than imported (per the playbook's guidance) so the two agents
+  stay independently buildable/testable, except `tls_pinning` which is genuinely
+  shared (imported from `journeycapture_windows_thinclient`, same as
+  `journeycapture_mcp.client` already does) since it's pure-stdlib logic with no
+  OS-specific code.
+- **Corrected a stale assumption**: `journeycapture_windows_thinclient`'s docs
+  previously said `pynput`/`mss` are "Windows-only in practice." Verified live
+  against a real Retina Mac during this work that both are genuinely
+  cross-platform — `mss`'s macOS backend already reports monitor bounds and
+  captures pixel data in real display pixels (matched `sct.grab(...)`'s actual
+  image size exactly, no HiDPI "points vs. pixels" correction needed), and
+  `pynput`'s reported cursor position falls in the same real-pixel coordinate
+  space `mss` reports. This means `journeycapture_mcp`'s `fx`/`fy` fractional
+  coordinates (see the two entries below) work identically on this agent with no
+  Mac-specific correction — confirmed, not assumed.
+- No new dependencies — `mss`/`pynput`/`pydantic`/`websockets` were already base
+  `dependencies`, shared by both agents.
+- New console script `journeycapture-mac`, PyInstaller entry point
+  `packaging/run_mac.py`, one-shot build script `scripts/mac_thinclient/build_mac.sh`
+  (bash port of `build_windows.ps1`), and docs `docs/MACOS_BUILD.md`/
+  `docs/MACOS_SMOKE_TEST.md` covering the one genuinely manual step: a one-time
+  Accessibility + Screen Recording permission grant that can't be scripted around.
+- 33 new tests (`tests/test_mac_config.py`, `tests/test_mac_input_control.py`,
+  `tests/test_mac_ws_client.py`), mirroring the Windows agent's test structure —
+  170 passing (was 137).
+- **Caught via an actual local build/run on a real Mac, not just unit tests**:
+  `examples/config.example.json` explicitly pinned `"log_file":
+  "journeycapture.log"`, silently overriding the new `Config` default of
+  `journeycapture-mac.log` for anyone who copied the example unedited — removed
+  that line so each agent's own compiled-in default takes effect (Windows still
+  gets `journeycapture.log`, Mac now genuinely gets `journeycapture-mac.log`).
+
 ## 2026-08-23 — Add `preview_click` to verify a click before it commits
 
 `fx`/`fy` (see the two entries below on the resolution-guessing bug) fixes

@@ -4,6 +4,8 @@ PyInstaller bundles the host platform's Python interpreter and native DLLs — i
 cross-compile. This build must run on a real Windows machine (or a `windows-latest`
 GitHub Actions runner). All commands below are PowerShell, run on Windows.
 
+Building the macOS agent instead? See [MACOS_BUILD.md](MACOS_BUILD.md).
+
 ## 0. Get the code onto the Windows machine
 
 ```powershell

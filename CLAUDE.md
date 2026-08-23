@@ -4,24 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Three components in one repo, meant to run on (potentially) three different machines:
+Four components in one repo, meant to run on (potentially) several different machines:
 
 ```
 MCP client  --stdio/HTTP-->  journeycapture_mcp  --HTTP-->  journeycapture_broker  <--WebSocket--  journeycapture_windows_thinclient(s)
+                                                                                    <--WebSocket--  journeycapture_mac_thinclient(s)
 ```
 
 - **`journeycapture_windows_thinclient`** — a Windows thin client that drives mouse/keyboard/
-  screenshot capture. Cross-platform Python, but only ever *run* as a packaged `.exe`
-  on a real Windows desktop — `pynput`/`mss` are Windows-only in practice. It does
-  **not** run a server — it connects *out* to the broker over a websocket and stays
-  connected, so it never needs an inbound port open. See "Retired: the thin client's
-  REST API" below for why.
+  screenshot capture, only ever *run* as a packaged `.exe` on a real Windows desktop.
+  It does **not** run a server — it connects *out* to the broker over a websocket and
+  stays connected, so it never needs an inbound port open. See "Retired: the thin
+  client's REST API" below for why.
+- **`journeycapture_mac_thinclient`** — the same agent role for a Mac, added per
+  `docs/THIN_AGENT_PLAYBOOK.md`'s recipe for a new agent OS. `pynput`/`mss` turned
+  out to be genuinely cross-platform (verified live against a real Retina Mac, not
+  assumed) — `capture.py`/`input_control.py` are near-identical to the Windows
+  agent's, and `ws_client.py` reproduces the same wire protocol byte-for-byte. Kept
+  as a fully separate package rather than one package branching on `sys.platform`,
+  per the playbook's guidance — see "journeycapture_mac_thinclient" below and
+  `docs/MACOS_BUILD.md`.
 - **`journeycapture_broker`** — routes requests from the MCP server to whichever
-  thin client they're addressed to (by `machine_id`). One broker can relay to many
-  machines at once — this is what makes "one MCP server, many Windows boxes"
-  possible. It's also the single place operational config for every thin client
-  and the MCP server can live, instead of each needing its own local copy — see
-  "Broker-pushed config" below and `docs/BROKER.md`.
+  thin client they're addressed to (by `machine_id`), regardless of which OS agent
+  is behind that id. One broker can relay to many machines at once — this is what
+  makes "one MCP server, many machines" possible. It's also the single place
+  operational config for every thin client and the MCP server can live, instead of
+  each needing its own local copy — see "Broker-pushed config" below and
+  `docs/BROKER.md`.
 - **`journeycapture_mcp`** — an MCP server exposing the broker's HTTP API as MCP
   tools, one `machine` parameter per tool. Runs on the *controller* machine
   (wherever your MCP client is). See `docs/MCP_SERVER.md`.
@@ -29,10 +38,11 @@ MCP client  --stdio/HTTP-->  journeycapture_mcp  --HTTP-->  journeycapture_broke
 ## Commands
 
 ```
-uv sync                    # install deps for the thin client (creates .venv)
+uv sync                    # install deps for both thin clients (creates .venv)
 uv sync --extra broker     # also install deps for the broker (controller-side only)
 uv sync --extra mcp        # also install deps for the MCP server (controller-side only)
-uv run journeycapture      # run the thin client from source (needs config.json - see below)
+uv run journeycapture      # run the Windows thin client from source (needs config.json - see below)
+uv run journeycapture-mac  # run the macOS thin client from source (needs config.json - see below)
 uv run journeycapture-broker --config broker_config.json  # run the broker
 uv run journeycapture-mcp --config scripts/mcp/mcp_config.json  # run the MCP server
 uv run pytest -q           # run the full test suite
@@ -116,6 +126,64 @@ old context (commits, docs, memory) that mentions `/mouse/move`, `allowed_ips`, 
 - **`packaging/run.py`** — the PyInstaller entry point (`from journeycapture_windows_thinclient import
   main; main()`), kept as a separate file from `server.py` deliberately for the build.
 
+### `journeycapture_mac_thinclient` — the macOS agent
+
+Lives in `src/journeycapture_mac_thinclient/`, a fourth top-level package alongside
+the other three (`[tool.uv.build-backend] module-name` lists all four). Built
+following `docs/THIN_AGENT_PLAYBOOK.md`'s recipe for adding a new agent OS — the
+broker and MCP server needed **zero changes** to support it, since both agents speak
+the identical wire protocol described in that doc's §1.
+
+- **Same base `dependencies`, no new ones.** `mss`/`pynput` turned out to be
+  genuinely cross-platform, not "Windows-only in practice" as the Windows agent's
+  own module once assumed — `capture.py` (`mss`) and `input_control.py` (`pynput`)
+  are near-identical to their Windows counterparts. Verified live against a real
+  Retina Mac during development (not assumed): `mss`'s macOS (Quartz) backend
+  already reports monitor bounds and captures pixel data in real display pixels —
+  `sct.monitors[n]["width"/"height"]` matched `sct.grab(...)`'s actual image size
+  exactly, with no HiDPI "points vs. pixels" correction needed — and `pynput`'s
+  reported cursor position falls within the same real-pixel monitor bounds `mss`
+  reports, not a scaled-down "points" space. This means the fx/fy fractional-
+  coordinate math in `journeycapture_mcp` (see "Never assume the screen resolution"
+  below) works identically on this agent with no Mac-specific correction.
+- **Fully separate package, not one package branching on `sys.platform`.** Per the
+  playbook's explicit guidance — `journeycapture_windows_thinclient.capture`/
+  `input_control`/`config`/`schemas`/`logging_setup`/`ws_client`/`server` are each
+  duplicated (not imported) into the mac package's own modules, so the two agents
+  stay independently buildable/packageable/testable without pulling in the other's
+  namespace. The one exception: `journeycapture_mac_thinclient.ws_client` imports
+  `tls_pinning` directly from `journeycapture_windows_thinclient` rather than
+  duplicating it — that module is pure-stdlib certificate-fingerprint logic with no
+  OS-specific code, and `journeycapture_mcp.client` already reuses it the same way,
+  so a future fix to the pinning logic only needs to land in one place.
+- **No DPI-awareness equivalent needed.** The Windows agent's `winutil.py` exists
+  because Windows silently reports pre-DPI-scaling coordinates unless a process
+  opts in to per-monitor DPI awareness. macOS has no equivalent opt-in step to call
+  — the `mss`/`pynput` verification above already confirmed real pixels are
+  reported without one, so `journeycapture_mac_thinclient.server` simply has no
+  call here at all, rather than a mac-specific no-op function mirroring
+  `winutil.set_dpi_awareness()`.
+- **macOS-only manual step**: `pynput` (mouse/keyboard) and `mss` (screen capture)
+  both require this process to be trusted under System Settings → Privacy &
+  Security → Accessibility and → Screen Recording respectively — a one-time grant
+  that can't be scripted around, and that macOS can silently withhold without even
+  prompting depending on version. See `docs/MACOS_BUILD.md` step 1.
+- **`packaging/run_mac.py`** — the PyInstaller entry point for this agent (`from
+  journeycapture_mac_thinclient import main; main()`), same reasoning as
+  `packaging/run.py`.
+- **`scripts/mac_thinclient/build_mac.sh`** — the one-shot build script, a bash
+  port of `scripts/thinclient/build_windows.ps1`'s steps (installs `uv` if missing,
+  syncs deps, runs the test suite, builds a version-named
+  `dist/journeycapture-mac-<version>` via PyInstaller, copies
+  `examples/config.example.json` → `dist/config.json` if missing). PyInstaller
+  doesn't cross-compile, so this must run on a real Mac, same constraint as the
+  Windows build.
+- Tests: `tests/test_mac_config.py`, `tests/test_mac_input_control.py`,
+  `tests/test_mac_ws_client.py` mirror `test_config.py`/`test_input_control.py`/
+  `test_ws_client.py`'s structure exactly, per the playbook's testing guidance —
+  everything above the `mss`/`pynput` leaf calls (config validation, dispatch,
+  auto-release, reconnect) is unit tested with those mocked out.
+
 ### Keyboard typing is intentionally paced
 
 `input_control.type_text` sends one character at a time with a small `time.sleep`
@@ -126,6 +194,13 @@ still reporting the full length as typed. Don't revert to a single bulk `.type()
 without re-verifying against a live instance. `\n` in typed text is translated to
 `Key.enter` by `pynput` automatically (see `pynput`'s `_CONTROL_CODES`), so no special
 handling is needed to end typed text with a return.
+
+`journeycapture_mac_thinclient.input_control.type_text` keeps the same paced
+behavior as a conservative default — this was **not** independently re-verified as
+necessary on macOS (only the `mss`/`pynput` coordinate-space finding above was); per
+`docs/THIN_AGENT_PLAYBOOK.md` §3, don't assume the Windows corruption finding
+transfers, but don't assume it doesn't either — verify against a live Mac before
+trusting an unpaced call there.
 
 ### Never assume the screen resolution
 
@@ -194,20 +269,21 @@ the test suite and live-testing scripts use) presses and releases within the sam
 and never touches this — only an explicit `down`/`press` schedules a timer. See
 `tests/test_input_control.py` for how this is tested without waiting on the real timeout.
 
-### Testing against a real Windows instance
+### Testing against a real Windows or Mac instance
 
 `scripts/` is organized by which component each file's config belongs to —
 `scripts/broker/` (`broker_config.json`, plus `broker_cert.pem`/`broker_key.pem` if
 TLS is on), `scripts/mcp/` (`mcp_config.json`), `scripts/thinclient/`
-(`thinclient_config.json`, `build_windows.ps1`) — with everything else (the live-test
+(`thinclient_config.json`, `build_windows.ps1`), `scripts/mac_thinclient/`
+(`mac_thinclient_config.json`, `build_mac.sh`) — with everything else (the live-test
 scripts below, and their own shared config) under `scripts/testing/`. Every file
-under these five directories except `build_windows.ps1` is gitignored (all contain
-real API keys or private key material).
+under these six directories except `build_windows.ps1`/`build_mac.sh` is gitignored
+(all contain real API keys or private key material).
 
-Since `pynput`/`mss` behavior and the packaged `.exe` can only be fully verified on
-real Windows hardware, `scripts/testing/` holds standalone httpx-based scripts for
-live testing, run from any machine that can reach the target (never on the thin
-client itself):
+Since `pynput`/`mss` behavior and the packaged executables can only be fully
+verified on the real target OS, `scripts/testing/` holds standalone httpx-based
+scripts for live testing, run from any machine that can reach the target (never on
+either thin client itself):
 
 - `scripts/testing/live_check.py` — full smoke test: health, wrong-key rejection,
   monitors, screenshot, optional `--with-mouse`/`--with-keyboard` round trips.
@@ -243,6 +319,8 @@ Must run on real Windows (PyInstaller doesn't cross-compile) — see
 `scripts/thinclient/build_windows.ps1` for the one-shot version (installs `uv` if missing, syncs
 deps, runs the test suite, builds a version-named `dist/journeycapture-<version>.exe`
 via PyInstaller, copies `examples/config.example.json` → `dist/config.json` if missing).
+Same constraint and one-shot pattern for the macOS agent — must run on a real Mac,
+see `docs/MACOS_BUILD.md` and `scripts/mac_thinclient/build_mac.sh`.
 
 ### `journeycapture_broker` — routes MCP requests to the right machine
 

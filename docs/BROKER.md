@@ -1,16 +1,18 @@
 # Broker
 
 `journeycapture-broker` sits between the MCP server and one or more thin clients
-(`journeycapture.exe` instances). It's what makes "one MCP server, many machines"
-possible: each thin client connects *out* to the broker over a websocket — it doesn't
-accept inbound connections at all — so the broker can reach any machine that can
-reach it, regardless of NAT/firewalls on the machine's side. The broker exposes an
-HTTP API to the MCP server, namespaced by machine id, mirroring the thin client's
-original REST shape.
+(`journeycapture.exe` on Windows, `journeycapture-mac` on macOS — see
+`docs/THIN_AGENT_PLAYBOOK.md` for adding another OS). It's what makes "one MCP
+server, many machines" possible: each thin client connects *out* to the broker over
+a websocket — it doesn't accept inbound connections at all — so the broker can reach
+any machine that can reach it, regardless of NAT/firewalls on the machine's side. The
+broker exposes an HTTP API to the MCP server, namespaced by machine id, mirroring
+the thin client's original REST shape — identically regardless of which OS agent is
+actually behind a given machine id.
 
 ```
-MCP server  --HTTP-->  broker  <--WebSocket--  thin client (journeycapture.exe)
-                                <--WebSocket--  thin client (another machine)
+MCP server  --HTTP-->  broker  <--WebSocket--  thin client (journeycapture.exe, Windows)
+                                <--WebSocket--  thin client (journeycapture-mac, macOS)
 ```
 
 Runs wherever is reachable by both the MCP server and every thin client — today that's
@@ -23,8 +25,8 @@ requires that.
 uv sync --extra broker
 ```
 
-Separate step from the plain `uv sync` used for the thin client — same reasoning as
-the `mcp` extra: the Windows build doesn't need to know the broker exists.
+Separate step from the plain `uv sync` used for either thin client — same reasoning
+as the `mcp` extra: neither thin client build needs to know the broker exists.
 
 ## Configuration
 

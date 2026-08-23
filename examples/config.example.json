@@ -10,6 +10,5 @@
     "quality": 75,
     "monitor": 0
   },
-  "log_level": "INFO",
-  "log_file": "journeycapture.log"
+  "log_level": "INFO"
 }
