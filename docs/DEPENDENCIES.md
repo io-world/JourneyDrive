@@ -13,7 +13,7 @@ this group — nothing below it.
 | `websockets` | `ws_client.py` connects *out* to the broker and speaks its request/response protocol — this replaced the thin client's own listening HTTP server. |
 | `pydantic` | A direct dependency now (previously only transitive via `fastapi`, which moved to the `broker` extra) — `schemas.py`'s request/response models and `config.py`'s `Config` validation both subclass `pydantic.BaseModel`, and `ws_client.py` validates incoming broker messages against those same schemas. |
 | `mss` | Cross-platform screenshot capture — grabs raw monitor pixels (`capture.py`'s `list_monitors`/`take_screenshot`). |
-| `pillow` | Encodes `mss`'s raw pixel data to JPEG (`capture.py`); PNG output uses `mss`'s own encoder instead. |
+| `pillow` | Encodes `mss`'s raw pixel data to JPEG (`capture.py`); PNG output uses `mss`'s own encoder instead. Also used by `journeycapture_mcp.server`'s `preview_click` tool to draw a crosshair marker on a screenshot — a base dependency already, so no separate addition to the `mcp` extra was needed. |
 | `pynput` | Synthesizes mouse/keyboard input at the OS level (`input_control.py`) — this is what actually moves the cursor, clicks, and types. |
 
 ## Broker (`journeycapture_broker`) — `broker` optional-dependency group

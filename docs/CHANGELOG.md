@@ -2,6 +2,33 @@
 
 Notable changes to JourneyCapture, newest first. Commit hashes refer to `main`.
 
+## 2026-08-23 — Add `preview_click` to verify a click before it commits
+
+`fx`/`fy` (see the two entries below on the resolution-guessing bug) fixes
+computing a coordinate against the *wrong resolution*, but does nothing for the
+separate, ordinary problem of misjudging *where on the image* a target actually
+sits — small targets and targets next to other clickable elements still miss
+sometimes, and until now there was no way to check a guess before the real click
+committed.
+
+- New MCP tool `preview_click(machine, x=None, y=None, fx=None, fy=None,
+  monitor=None)` (`journeycapture_mcp/server.py`): takes the same coordinate
+  arguments as `click_mouse`, but instead of clicking, returns a fresh screenshot
+  with a magenta crosshair drawn at the resolved pixel position — nothing on the
+  target machine is touched. Reuses `_resolve_xy` for the coordinate math and the
+  same `Image` return convention `take_screenshot` already uses. Pillow was
+  already a base dependency (used for JPEG encoding on the thin client side), so
+  no new dependency was needed.
+- Deliberately resolves the coordinate and captures the screenshot against the
+  *same* monitor index in one call, rather than trusting the caller to pass a
+  consistent `monitor` across two separate tool calls — otherwise the crosshair
+  could be drawn at the right fraction of the wrong monitor's image.
+- Server instructions now tell the model to call `preview_click` before
+  `click_mouse` on a small or ambiguous target.
+- 5 new tests in `tests/test_mcp_server.py` (132 → 137 passing), including one
+  that decodes the returned base64 PNG and asserts the marker pixel actually
+  differs from the screenshot's background color at the resolved position.
+
 ## 2026-08-21 — Broker-pushed config is now the recommended primary path
 
 Reframed broker-pushed config (previous entry, below) from an opt-in bolt-on to

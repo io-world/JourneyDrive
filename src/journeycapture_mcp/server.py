@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import io
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
 from mcp.server.mcpserver import Image, MCPServer
+from PIL import Image as PILImage
+from PIL import ImageDraw
 
 from journeycapture_mcp.client import JourneyCaptureClient
 from journeycapture_mcp.config import Settings
@@ -18,7 +21,8 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         name="journeycapture",
         instructions="Remote-control Windows desktops through a broker that can reach multiple machines. Call "
         "list_machines first to see what's available, then pass that machine id to every other tool. Call "
-        "health_check if unsure a specific machine is reachable.",
+        "health_check if unsure a specific machine is reachable. Before click_mouse on a small or ambiguous "
+        "target, call preview_click first to visually confirm the resolved coordinate actually lands on it.",
     )
 
     def _prune_old_screenshots(out_dir: Path) -> None:
@@ -88,6 +92,33 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
             raise ValueError(f"monitor index {index} out of range (0..{len(monitors) - 1})") from None
         return target["left"] + round(fx * target["width"]), target["top"] + round(fy * target["height"])
 
+    def _draw_crosshair(data: bytes, marker_x: int, marker_y: int) -> bytes:
+        with PILImage.open(io.BytesIO(data)) as img:
+            img = img.convert("RGB")
+            marker_x = max(0, min(img.width - 1, marker_x))
+            marker_y = max(0, min(img.height - 1, marker_y))
+            draw = ImageDraw.Draw(img)
+            radius = 18
+            color = (255, 0, 255)  # magenta — visible against most desktop backgrounds
+            outline = (0, 0, 0)
+            # A dark outline first, then the colored cross/circle on top, so the
+            # marker stays visible against both light and dark screen content.
+            for ox, oy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
+                draw.line(
+                    [(marker_x - radius + ox, marker_y + oy), (marker_x + radius + ox, marker_y + oy)],
+                    fill=outline, width=1,
+                )
+                draw.line(
+                    [(marker_x + ox, marker_y - radius + oy), (marker_x + ox, marker_y + radius + oy)],
+                    fill=outline, width=1,
+                )
+            draw.line([(marker_x - radius, marker_y), (marker_x + radius, marker_y)], fill=color, width=3)
+            draw.line([(marker_x, marker_y - radius), (marker_x, marker_y + radius)], fill=color, width=3)
+            draw.ellipse([marker_x - 6, marker_y - 6, marker_x + 6, marker_y + 6], outline=color, width=2)
+            out = io.BytesIO()
+            img.save(out, format="PNG")
+            return out.getvalue()
+
     @server.tool()
     async def list_machines() -> list[str]:
         """List machine ids currently connected to the broker. Call this first — every other tool needs a machine id from here."""
@@ -118,6 +149,31 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         if settings.save_screenshots:
             _save_screenshot(data, image_format)
         return Image(data=data, format=image_format)
+
+    @server.tool()
+    async def preview_click(
+        machine: str,
+        x: int | None = None,
+        y: int | None = None,
+        fx: float | None = None,
+        fy: float | None = None,
+        monitor: int | None = None,
+    ) -> Image:
+        """Preview where click_mouse would land, WITHOUT clicking: takes a fresh screenshot and draws a magenta crosshair at the resolved x/y (pixels) or fx/fy (fraction 0.0-1.0) position. Use this before click_mouse on small or ambiguous targets (tabs, sidebar thumbnails, anything near another clickable element) to visually confirm the marker actually lands on the intended target — a fraction estimated by eye from a screenshot has no other way to be verified before the click commits. If the marker is off-target, adjust fx/fy and call this again rather than guessing a correction; only call click_mouse once the marker looks right. monitor selects which monitor fx/fy is relative to (default: the primary physical monitor, same as list_monitors index 1) — the same monitor is used both to resolve the coordinate and to capture the screenshot, so the marker is always positioned consistently with the image."""
+        monitors = await client.list_monitors(machine)
+        resolved_monitor = monitor if monitor is not None else (1 if len(monitors) > 1 else 0)
+        resolved_x, resolved_y = await _resolve_xy(machine, x, y, fx, fy, resolved_monitor)
+        logger.info(
+            "preview_click machine=%s x=%s y=%s fx=%s fy=%s monitor=%s -> resolved (%s, %s)",
+            machine, x, y, fx, fy, resolved_monitor, resolved_x, resolved_y,
+        )
+        data, _content_type = await client.screenshot(machine, monitor=resolved_monitor)
+        try:
+            target = monitors[resolved_monitor]
+        except IndexError:
+            raise ValueError(f"monitor index {resolved_monitor} out of range (0..{len(monitors) - 1})") from None
+        annotated = _draw_crosshair(data, resolved_x - target["left"], resolved_y - target["top"])
+        return Image(data=annotated, format="png")
 
     @server.tool()
     async def move_mouse(

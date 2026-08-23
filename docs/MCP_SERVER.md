@@ -119,10 +119,10 @@ how close together they are, since each is a fully separate round trip).
 ## Tools
 
 One tool per REST endpoint the broker exposes (`journeycapture_mcp/server.py`) —
-`list_machines`, `health_check`, `list_monitors`, `take_screenshot`, `move_mouse`,
-`click_mouse`, `scroll_mouse`, `type_text`, `send_keys`. Every tool except
-`list_machines` takes a required `machine` id — call `list_machines` first to see
-what's connected. Tool descriptions mirror the broker's own OpenAPI descriptions
+`list_machines`, `health_check`, `list_monitors`, `take_screenshot`, `preview_click`,
+`move_mouse`, `click_mouse`, `scroll_mouse`, `type_text`, `send_keys`. Every tool
+except `list_machines` takes a required `machine` id — call `list_machines` first to
+see what's connected. Tool descriptions mirror the broker's own OpenAPI descriptions
 (coordinate origin, scroll units, valid key names), which in turn mirror the thin
 client's original ones — see `CLAUDE.md`'s architecture section.
 
@@ -151,6 +151,24 @@ prompted this.
 `x`/`y` and `fx`/`fy` are mutually exclusive per call (pick one), and `fx`/`fy` can't
 be combined with `move_mouse`'s `relative=True` — a fraction of the screen isn't a
 meaningful concept for a relative offset.
+
+`fx`/`fy` fixes guessing against the *wrong resolution*, but doesn't fix misjudging
+*where on the image* a target actually sits — that's a separate, ordinary
+eyeballing-accuracy problem, most likely on small targets (tabs, sidebar thumbnails)
+or targets next to other clickable elements. There was previously no way to check an
+`fx`/`fy` guess before the real click committed — see `preview_click` below.
+
+### Previewing a click before it happens (`preview_click`)
+
+`preview_click(machine, x=None, y=None, fx=None, fy=None, monitor=None)` takes the
+exact same coordinate arguments as `click_mouse`, but instead of clicking, it returns
+a fresh screenshot with a magenta crosshair drawn at the resolved position — nothing
+on the target machine is touched. Use it before `click_mouse` on anything small or
+ambiguous: call it, look at where the marker landed relative to the intended target,
+and if it's off, adjust `fx`/`fy` and call `preview_click` again rather than guessing
+a correction — only call `click_mouse` once the marker actually lines up. The same
+`monitor` is used to both resolve the coordinate and capture the screenshot, so the
+marker's position is always consistent with the image it's drawn on.
 
 ### Saving screenshots locally
 

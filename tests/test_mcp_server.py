@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
+import io
 import logging
 from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
+from PIL import Image as PILImage
 
 pytest.importorskip("mcp")  # controller-side-only extra; not installed for the Windows thin-client build
 
@@ -14,6 +17,12 @@ from journeycapture_mcp.config import Settings
 from journeycapture_mcp.server import build_server
 
 MACHINE = "office-pc"
+
+
+def _fake_screenshot_bytes(width: int = 200, height: int = 100) -> bytes:
+    buf = io.BytesIO()
+    PILImage.new("RGB", (width, height), color=(10, 20, 30)).save(buf, format="JPEG")
+    return buf.getvalue()
 
 
 @pytest.fixture
@@ -222,3 +231,58 @@ async def test_list_monitors_calls_client(server, client: AsyncMock) -> None:
     result = await server.call_tool("list_monitors", {"machine": MACHINE})
     client.list_monitors.assert_called_once_with(MACHINE)
     assert not result.is_error
+
+
+@pytest.mark.asyncio
+async def test_preview_click_returns_annotated_png(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+    result = await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
+    assert not result.is_error
+    assert result.content[0].type == "image"
+    assert result.content[0].mime_type == "image/png"
+
+
+@pytest.mark.asyncio
+async def test_preview_click_does_not_call_click_mouse(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+    await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
+    client.click_mouse.assert_not_called()
+    client.move_mouse.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_preview_click_draws_marker_at_resolved_position(server, client: AsyncMock) -> None:
+    background = (10, 20, 30)
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+
+    result = await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
+
+    annotated_bytes = base64.b64decode(result.content[0].data)
+    annotated = PILImage.open(io.BytesIO(annotated_bytes)).convert("RGB")
+    # fx=0.5, fy=0.5 on a 200x100 image resolves to (100, 50) — the crosshair's
+    # own pixel there must no longer be the plain background color.
+    assert annotated.getpixel((100, 50)) != background
+
+
+@pytest.mark.asyncio
+async def test_preview_click_uses_same_monitor_for_resolve_and_capture(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [
+        {"index": 0, "left": 0, "top": 0, "width": 3840, "height": 1080},
+        {"index": 1, "left": 0, "top": 0, "width": 1920, "height": 1080},
+        {"index": 2, "left": 1920, "top": 0, "width": 1920, "height": 1080},
+    ]
+    client.screenshot.return_value = (_fake_screenshot_bytes(1920, 1080), "image/jpeg")
+    await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5, "monitor": 2})
+    client.screenshot.assert_called_once_with(MACHINE, monitor=2)
+
+
+@pytest.mark.asyncio
+async def test_preview_click_logs_call(server, client: AsyncMock, caplog) -> None:
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+    with caplog.at_level(logging.INFO, logger="journeycapture_mcp.server"):
+        await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
+    assert "preview_click" in caplog.text
