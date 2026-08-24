@@ -210,6 +210,7 @@ All routes require `X-API-Key` matching the broker's own `api_key`.
 - `GET /machines/{id}/screenshot?format=&quality=&monitor=`
 - `POST /machines/{id}/mouse/move`, `/mouse/click`, `/mouse/scroll`
 - `POST /machines/{id}/keyboard/type`, `/keyboard/key`
+- `GET`/`POST /machines/{id}/clipboard` — read/write the remote clipboard.
 
 FastAPI's interactive docs (`/docs`, `/redoc`, `/openapi.json`) are deliberately
 disabled (`create_app`'s `docs_url=None` etc.) rather than left on: those routes are

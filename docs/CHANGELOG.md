@@ -2,6 +2,40 @@
 
 Notable changes to JourneyCapture, newest first. Commit hashes refer to `main`.
 
+## 2026-08-24 — Add clipboard access and screenshot region crop
+
+Two of the three ideas from `docs/FUTURE_FEATURES.md` implemented: `get_clipboard`/
+`set_clipboard` tools, and `take_screenshot`'s `fx1`/`fy1`/`fx2`/`fy2` region crop
+(same fractional-coordinate reasoning as `fx`/`fy`, applied to a rectangle). New
+wire-protocol methods `clipboard_get`/`clipboard_set` and broker route
+`GET`/`POST /machines/{id}/clipboard`, mirrored identically across both thin
+clients. `pyperclip` is a new base dependency — no extra install needed by either
+agent or the MCP server.
+
+Both features were added outside this session originally, then reviewed here.
+Two real bugs found by actually calling the new code (not just reading it), and
+fixed:
+
+- **Crop validation gap**: an inverted (`fx1 > fx2`) or zero-size crop region
+  wasn't validated before calling Pillow's `.crop()`/`.save()` — both raised, but
+  with raw internal Pillow messages (`"Coordinate 'right' is less than 'left'"`,
+  `"cannot write empty image"`) reaching the caller instead of a clear one. Now
+  validated up front with a message naming the actual fractions and resolved pixel
+  box, matching every other validation error in this file.
+- **Debug-saved screenshot didn't match what the model received**: `_save_screenshot`
+  ran *before* the crop, so a cropped call saved the full pre-crop image to disk
+  while the model got the cropped one back — contradicting the documented purpose
+  ("useful for debugging what the model actually saw"). Save now happens after
+  cropping, using the final bytes.
+- Also extracted `_resolve_monitor` (shared by `_resolve_xy` and the crop path) to
+  remove duplicated monitor-lookup/`IndexError` handling, and moved `pyperclip`'s
+  import to module level in both thin clients' `input_control.py` (no functional
+  reason for the lazy per-call import, now that it's a hard base dependency).
+- 25 new tests across `test_mcp_server.py`, `test_mcp_client.py`,
+  `test_broker_http_api.py`, `test_ws_client.py`/`test_mac_ws_client.py`, and
+  `test_input_control.py`/`test_mac_input_control.py` — 195 passing (was 170).
+  Neither feature had any test coverage before this review.
+
 ## 2026-08-23 — Add `journeycapture_mac_thinclient`, a second agent for macOS
 
 Built following `docs/THIN_AGENT_PLAYBOOK.md`'s own recipe for adding a new agent

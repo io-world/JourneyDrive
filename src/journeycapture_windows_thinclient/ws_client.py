@@ -15,6 +15,7 @@ from journeycapture_windows_thinclient import capture, input_control, tls_pinnin
 from journeycapture_windows_thinclient.config import Config, ScreenshotConfig
 from journeycapture_windows_thinclient.tls_pinning import CertificateFingerprintMismatch  # noqa: F401
 from journeycapture_windows_thinclient.schemas import (
+    ClipboardSetRequest,
     KeyboardKeyRequest,
     KeyboardTypeRequest,
     MouseClickRequest,
@@ -116,6 +117,19 @@ def _handle_keyboard_key(config: Config, params: dict) -> Any:
     return {"status": "ok"}
 
 
+def _handle_clipboard_get(config: Config, params: dict) -> Any:
+    text = input_control.get_clipboard()
+    logger.info("clipboard get -> %d character(s)", len(text))
+    return {"text": text}
+
+
+def _handle_clipboard_set(config: Config, params: dict) -> Any:
+    body = ClipboardSetRequest.model_validate(params)
+    logger.info("clipboard set %d character(s)", len(body.text))
+    input_control.set_clipboard(body.text)
+    return {"status": "ok"}
+
+
 _HANDLERS: dict[str, Callable[[Config, dict], Any]] = {
     "health": _handle_health,
     "screenshot_monitors": _handle_screenshot_monitors,
@@ -124,6 +138,8 @@ _HANDLERS: dict[str, Callable[[Config, dict], Any]] = {
     "mouse_scroll": _handle_mouse_scroll,
     "keyboard_type": _handle_keyboard_type,
     "keyboard_key": _handle_keyboard_key,
+    "clipboard_get": _handle_clipboard_get,
+    "clipboard_set": _handle_clipboard_set,
 }
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -58,3 +58,21 @@ def test_keyboard_tap_does_not_schedule_auto_release(mocked_controllers):
     _, keyboard = mocked_controllers
     input_control.send_keys(["a"], action="tap")
     assert input_control._held_keys == {}
+
+
+def test_get_clipboard_returns_pasted_text():
+    with patch("journeycapture_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
+        mock_pyperclip.paste.return_value = "hello"
+        assert input_control.get_clipboard() == "hello"
+
+
+def test_get_clipboard_returns_empty_string_for_none():
+    with patch("journeycapture_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
+        mock_pyperclip.paste.return_value = None
+        assert input_control.get_clipboard() == ""
+
+
+def test_set_clipboard_copies_text():
+    with patch("journeycapture_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
+        input_control.set_clipboard("hello")
+        mock_pyperclip.copy.assert_called_once_with("hello")

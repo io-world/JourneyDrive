@@ -5,6 +5,7 @@ import threading
 import time
 from typing import Callable, Literal
 
+import pyperclip
 from pynput.keyboard import Controller as KeyboardController
 from pynput.keyboard import Key, KeyCode
 from pynput.mouse import Button, Controller as MouseController
@@ -124,3 +125,11 @@ def send_keys(keys: list[str], action: Literal["press", "release", "tap"] = "tap
                 _keyboard.press(key)
             for key in reversed(resolved):
                 _keyboard.release(key)
+
+
+def get_clipboard() -> str:
+    return pyperclip.paste() or ""
+
+
+def set_clipboard(text: str) -> None:
+    pyperclip.copy(text)

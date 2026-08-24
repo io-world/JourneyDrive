@@ -257,9 +257,10 @@ Every `ws_client.py` handler (`_handle_mouse_move`, `_handle_keyboard_type`, etc
 logs one line before acting, via `logging.getLogger(__name__)` — reaches both the
 console and the rotating log file through the root-logger handlers
 `logging_setup.configure_logging` already sets up, so nothing extra is needed to see
-it. `keyboard_type` logs the character *count* only, never the text itself, since
-that could be a password or other sensitive content. `health` is deliberately not
-logged — it's a liveness ping, not a remote-control command.
+it. `keyboard_type` and `clipboard_set`/`clipboard_get` log the character *count*
+only, never the text itself, since clipboard content or typed text could be a
+password or other sensitive content. `health` is deliberately not logged — it's a
+liveness ping, not a remote-control command.
 
 `click_mouse`/`send_keys`'s `action="down"`/`"press"` (holding a button/key across
 separate requests, e.g. for a drag) auto-release after `_AUTO_RELEASE_SECONDS` (10s) if

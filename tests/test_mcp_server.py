@@ -286,3 +286,124 @@ async def test_preview_click_logs_call(server, client: AsyncMock, caplog) -> Non
     with caplog.at_level(logging.INFO, logger="journeycapture_mcp.server"):
         await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
     assert "preview_click" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_take_screenshot_crop_returns_cropped_region(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+
+    result = await server.call_tool(
+        "take_screenshot", {"machine": MACHINE, "fx1": 0.25, "fy1": 0.25, "fx2": 0.75, "fy2": 0.75}
+    )
+
+    assert not result.is_error
+    assert result.content[0].mime_type == "image/png"
+    cropped = PILImage.open(io.BytesIO(base64.b64decode(result.content[0].data)))
+    assert cropped.size == (100, 50)
+
+
+@pytest.mark.asyncio
+async def test_take_screenshot_crop_uses_specified_monitor(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [
+        {"index": 0, "left": 0, "top": 0, "width": 3840, "height": 1080},
+        {"index": 1, "left": 0, "top": 0, "width": 1920, "height": 1080},
+        {"index": 2, "left": 1920, "top": 0, "width": 1920, "height": 1080},
+    ]
+    client.screenshot.return_value = (_fake_screenshot_bytes(1920, 1080), "image/jpeg")
+
+    result = await server.call_tool(
+        "take_screenshot", {"machine": MACHINE, "fx1": 0.0, "fy1": 0.0, "fx2": 0.5, "fy2": 0.5, "monitor": 2}
+    )
+
+    cropped = PILImage.open(io.BytesIO(base64.b64decode(result.content[0].data)))
+    assert cropped.size == (960, 540)
+    client.screenshot.assert_called_once_with(MACHINE, format=None, quality=None, monitor=2)
+
+
+@pytest.mark.asyncio
+async def test_take_screenshot_crop_partial_args_raises(server, client: AsyncMock) -> None:
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+    with pytest.raises(ToolError, match="must all be provided together"):
+        await server.call_tool("take_screenshot", {"machine": MACHINE, "fx1": 0.25, "fy1": 0.25})
+
+
+@pytest.mark.asyncio
+async def test_take_screenshot_crop_inverted_region_raises_clear_error(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+    with pytest.raises(ToolError, match="Invalid crop region"):
+        await server.call_tool(
+            "take_screenshot", {"machine": MACHINE, "fx1": 0.8, "fy1": 0.2, "fx2": 0.2, "fy2": 0.8}
+        )
+
+
+@pytest.mark.asyncio
+async def test_take_screenshot_crop_zero_size_region_raises_clear_error(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+    with pytest.raises(ToolError, match="Invalid crop region"):
+        await server.call_tool(
+            "take_screenshot", {"machine": MACHINE, "fx1": 0.5, "fy1": 0.5, "fx2": 0.5, "fy2": 0.6}
+        )
+
+
+@pytest.mark.asyncio
+async def test_take_screenshot_crop_out_of_range_monitor_raises(server, client: AsyncMock) -> None:
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+    with pytest.raises(ToolError, match="monitor index 9 out of range"):
+        await server.call_tool(
+            "take_screenshot",
+            {"machine": MACHINE, "fx1": 0.0, "fy1": 0.0, "fx2": 0.5, "fy2": 0.5, "monitor": 9},
+        )
+
+
+@pytest.mark.asyncio
+async def test_take_screenshot_saved_copy_matches_cropped_result(client: AsyncMock, tmp_path) -> None:
+    settings = Settings(
+        broker_host="192.168.1.10",
+        broker_api_key="a" * 32,
+        save_screenshots=True,
+        screenshot_dir=str(tmp_path / "shots"),
+    )
+    server = build_server(client, settings)
+    client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
+    client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
+
+    result = await server.call_tool(
+        "take_screenshot", {"machine": MACHINE, "fx1": 0.25, "fy1": 0.25, "fx2": 0.75, "fy2": 0.75}
+    )
+
+    returned = PILImage.open(io.BytesIO(base64.b64decode(result.content[0].data)))
+    saved_files = list((tmp_path / "shots").glob("*.png"))
+    assert len(saved_files) == 1
+    saved = PILImage.open(saved_files[0])
+    # The debug copy on disk must match what the model actually received (cropped),
+    # not the full pre-crop capture.
+    assert saved.size == returned.size == (100, 50)
+
+
+@pytest.mark.asyncio
+async def test_get_clipboard_calls_client(server, client: AsyncMock) -> None:
+    client.get_clipboard.return_value = "hello from clipboard"
+    result = await server.call_tool("get_clipboard", {"machine": MACHINE})
+    client.get_clipboard.assert_called_once_with(MACHINE)
+    assert not result.is_error
+
+
+@pytest.mark.asyncio
+async def test_set_clipboard_calls_client(server, client: AsyncMock) -> None:
+    client.set_clipboard.return_value = {"status": "ok"}
+    await server.call_tool("set_clipboard", {"machine": MACHINE, "text": "hello"})
+    client.set_clipboard.assert_called_once_with(MACHINE, "hello")
+
+
+@pytest.mark.asyncio
+async def test_set_clipboard_logs_length_not_text(server, client: AsyncMock, caplog) -> None:
+    secret = "s3cr3t-clipboard-content"
+    client.set_clipboard.return_value = {"status": "ok"}
+    with caplog.at_level(logging.INFO, logger="journeycapture_mcp.server"):
+        await server.call_tool("set_clipboard", {"machine": MACHINE, "text": secret})
+    assert secret not in caplog.text
+    assert f"{len(secret)} character" in caplog.text

@@ -55,6 +55,19 @@ def test_handle_keyboard_type(config: Config) -> None:
     assert result == {"status": "ok", "length": 5}
 
 
+def test_handle_clipboard_get(config: Config) -> None:
+    with patch("journeycapture_mac_thinclient.ws_client.input_control.get_clipboard", return_value="hi"):
+        result = ws_client._handle_clipboard_get(config, {})
+    assert result == {"text": "hi"}
+
+
+def test_handle_clipboard_set(config: Config) -> None:
+    with patch("journeycapture_mac_thinclient.ws_client.input_control.set_clipboard") as mock_set:
+        result = ws_client._handle_clipboard_set(config, {"text": "hello"})
+    mock_set.assert_called_once_with("hello")
+    assert result == {"status": "ok"}
+
+
 def test_handle_keyboard_key_unknown_key_raises_dispatch_error(config: Config) -> None:
     with patch(
         "journeycapture_mac_thinclient.ws_client.input_control.send_keys",

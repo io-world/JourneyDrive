@@ -143,3 +143,37 @@ async def test_click_mouse_omits_unset_coordinates(settings: Settings) -> None:
     await client.click_mouse("office-pc")
     assert b"x" not in seen["body"]
     assert b"y" not in seen["body"]
+
+
+@pytest.mark.asyncio
+async def test_get_clipboard_hits_machine_namespaced_path(settings: Settings) -> None:
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["method"] = request.method
+        seen["path"] = request.url.path
+        return httpx.Response(200, json={"text": "hello from clipboard"})
+
+    client = make_client(settings, handler)
+    result = await client.get_clipboard("office-pc")
+    assert result == "hello from clipboard"
+    assert seen["method"] == "GET"
+    assert seen["path"] == "/machines/office-pc/clipboard"
+
+
+@pytest.mark.asyncio
+async def test_set_clipboard_posts_text_to_machine_path(settings: Settings) -> None:
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["method"] = request.method
+        seen["path"] = request.url.path
+        seen["body"] = request.content
+        return httpx.Response(200, json={"status": "ok"})
+
+    client = make_client(settings, handler)
+    result = await client.set_clipboard("office-pc", "hello")
+    assert result == {"status": "ok"}
+    assert seen["method"] == "POST"
+    assert seen["path"] == "/machines/office-pc/clipboard"
+    assert b"hello" in seen["body"]

@@ -63,3 +63,11 @@ class KeyboardTypeResponse(StatusResponse):
 class KeyboardKeyRequest(BaseModel):
     keys: list[str] = Field(description="Key names to send together as a chord, e.g. [\"ctrl\", \"alt\", \"delete\"]. Each is either a single printable character or a pynput.keyboard.Key name (enter, tab, esc, backspace, space, shift, ctrl, alt, cmd, up, down, left, right, f1-f20, etc).")
     action: Literal["press", "release", "tap"] = Field(default="tap", description="'tap' presses then releases all keys (default). 'press'/'release' hold or let go without the other half, for building a custom sequence across multiple requests.")
+
+
+class ClipboardSetRequest(BaseModel):
+    text: str = Field(max_length=100_000, description="Text to write to the remote machine's clipboard.")
+
+
+class ClipboardGetResponse(BaseModel):
+    text: str

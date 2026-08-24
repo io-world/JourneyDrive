@@ -137,3 +137,24 @@ def test_keyboard_type(client: TestClient, auth_headers: dict, registry: Mock) -
     response = client.post("/machines/office-pc/keyboard/type", json={"text": "hello"}, headers=auth_headers)
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "length": 5}
+
+
+def test_clipboard_get(client: TestClient, auth_headers: dict, registry: Mock) -> None:
+    registry.call.return_value = ({"text": "hello from clipboard"}, None)
+    response = client.get("/machines/office-pc/clipboard", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json() == {"text": "hello from clipboard"}
+    registry.call.assert_called_once_with("office-pc", "clipboard_get", {})
+
+
+def test_clipboard_set(client: TestClient, auth_headers: dict, registry: Mock) -> None:
+    registry.call.return_value = ({"status": "ok"}, None)
+    response = client.post("/machines/office-pc/clipboard", json={"text": "hello"}, headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    registry.call.assert_called_once_with("office-pc", "clipboard_set", {"text": "hello"})
+
+
+def test_clipboard_set_requires_auth(client: TestClient) -> None:
+    response = client.post("/machines/office-pc/clipboard", json={"text": "hello"})
+    assert response.status_code == 401

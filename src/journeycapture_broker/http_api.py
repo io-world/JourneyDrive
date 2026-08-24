@@ -9,6 +9,8 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
 from journeycapture_broker.config import Settings
 from journeycapture_broker.registry import ConnectionRegistry, MachineError, MachineNotConnected, MachineTimeout
 from journeycapture_windows_thinclient.schemas import (
+    ClipboardGetResponse,
+    ClipboardSetRequest,
     KeyboardKeyRequest,
     KeyboardTypeRequest,
     KeyboardTypeResponse,
@@ -102,6 +104,16 @@ def create_app(settings: Settings, registry: ConnectionRegistry) -> FastAPI:
     @app.post("/machines/{machine_id}/keyboard/key", response_model=StatusResponse)
     async def keyboard_key(machine_id: str, body: KeyboardKeyRequest) -> dict:
         result, _ = await _call(machine_id, "keyboard_key", body.model_dump())
+        return result
+
+    @app.get("/machines/{machine_id}/clipboard", response_model=ClipboardGetResponse)
+    async def clipboard_get(machine_id: str) -> dict:
+        result, _ = await _call(machine_id, "clipboard_get", {})
+        return result
+
+    @app.post("/machines/{machine_id}/clipboard", response_model=StatusResponse)
+    async def clipboard_set(machine_id: str, body: ClipboardSetRequest) -> dict:
+        result, _ = await _call(machine_id, "clipboard_set", body.model_dump())
         return result
 
     return app

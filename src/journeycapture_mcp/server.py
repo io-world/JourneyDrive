@@ -60,6 +60,13 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
             # actual take_screenshot call.
             logger.warning("failed to save/prune screenshot copies: %s", e)
 
+    def _resolve_monitor(monitors: list[dict], index: int | None) -> dict:
+        resolved_index = index if index is not None else (1 if len(monitors) > 1 else 0)
+        try:
+            return monitors[resolved_index]
+        except IndexError:
+            raise ValueError(f"monitor index {resolved_index} out of range (0..{len(monitors) - 1})") from None
+
     async def _resolve_xy(
         machine: str,
         x: int | None,
@@ -85,11 +92,7 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         if have_xy:
             return x, y
         monitors = await client.list_monitors(machine)
-        index = monitor if monitor is not None else (1 if len(monitors) > 1 else 0)
-        try:
-            target = monitors[index]
-        except IndexError:
-            raise ValueError(f"monitor index {index} out of range (0..{len(monitors) - 1})") from None
+        target = _resolve_monitor(monitors, monitor)
         return target["left"] + round(fx * target["width"]), target["top"] + round(fy * target["height"])
 
     def _draw_crosshair(data: bytes, marker_x: int, marker_y: int) -> bytes:
@@ -141,11 +144,36 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         format: Literal["png", "jpeg"] | None = None,
         quality: int | None = None,
         monitor: int | None = None,
+        fx1: float | None = None,
+        fy1: float | None = None,
+        fx2: float | None = None,
+        fy2: float | None = None,
     ) -> Image:
-        """Capture a screenshot of one monitor on the given machine. format/quality default to that machine's own config when omitted; monitor index comes from list_monitors. Measure coordinates against this image's actual pixel dimensions (or list_monitors) — don't assume a resolution."""
-        logger.info("take_screenshot machine=%s format=%s quality=%s monitor=%s", machine, format, quality, monitor)
+        """Capture a screenshot of one monitor on the given machine. format/quality default to that machine's own config when omitted; monitor index comes from list_monitors. Measure coordinates against this image's actual pixel dimensions (or list_monitors) — don't assume a resolution. Optionally crop to a region: fx1/fy1 is the top-left corner and fx2/fy2 is the bottom-right corner, each as a fraction 0.0-1.0 of the monitor's width/height — useful for zooming in on a small target to read it more clearly. fx1 must be less than fx2, and fy1 less than fy2. A cropped result is always PNG, regardless of the requested format."""
+        logger.info("take_screenshot machine=%s format=%s quality=%s monitor=%s fx1=%s fy1=%s fx2=%s fy2=%s", machine, format, quality, monitor, fx1, fy1, fx2, fy2)
         data, content_type = await client.screenshot(machine, format=format, quality=quality, monitor=monitor)
         image_format = "png" if "png" in content_type else "jpeg"
+        if fx1 is not None or fy1 is not None or fx2 is not None or fy2 is not None:
+            if None in (fx1, fy1, fx2, fy2):
+                raise ValueError("fx1, fy1, fx2, and fy2 must all be provided together for region crop.")
+            monitors = await client.list_monitors(machine)
+            target = _resolve_monitor(monitors, monitor)
+            w, h = target["width"], target["height"]
+            x1, y1 = round(fx1 * w), round(fy1 * h)
+            x2, y2 = round(fx2 * w), round(fy2 * h)
+            if x2 <= x1 or y2 <= y1:
+                raise ValueError(
+                    f"Invalid crop region: fx1/fy1 ({fx1}, {fy1}) must be strictly less than fx2/fy2 "
+                    f"({fx2}, {fy2}) — resolved to pixel box ({x1}, {y1})-({x2}, {y2}), which is empty or inverted."
+                )
+            with PILImage.open(io.BytesIO(data)) as img:
+                cropped = img.crop((x1, y1, x2, y2))
+                out = io.BytesIO()
+                cropped.save(out, format="PNG")
+                data = out.getvalue()
+            image_format = "png"
+        # Saved *after* any crop, so the debug copy on disk always matches what the
+        # model actually received — not the full pre-crop capture.
         if settings.save_screenshots:
             _save_screenshot(data, image_format)
         return Image(data=data, format=image_format)
@@ -243,5 +271,20 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         """Send one or more named keys to the given machine, e.g. special keys or chords like ["ctrl", "c"] that type_text can't express. Each key is either a single printable character or a pynput.keyboard.Key name (enter, tab, esc, backspace, space, shift, ctrl, alt, cmd, up, down, left, right, f1-f20, etc). action="tap" (default) presses then releases; "press"/"release" hold or let go without the other half — an unmatched press auto-releases after ~10s on the target machine."""
         logger.info("send_keys machine=%s keys=%s action=%s", machine, keys, action)
         return await client.send_keys(machine, keys, action=action)
+
+    @server.tool()
+    async def get_clipboard(machine: str) -> dict:
+        """Read the current text content of the clipboard on the given machine. Useful for inspecting what the user last copied without needing a screenshot."""
+        logger.info("get_clipboard machine=%s", machine)
+        text = await client.get_clipboard(machine)
+        logger.info("get_clipboard machine=%s -> %d character(s)", machine, len(text))
+        return {"text": text}
+
+    @server.tool()
+    async def set_clipboard(machine: str, text: str) -> dict:
+        """Write text to the clipboard on the given machine. Combined with send_keys(["ctrl", "v"]), this is faster and more reliable than type_text for long strings (URLs, code blocks, paragraphs) — the text is pasted as a single operation rather than sent one character at a time."""
+        # Log length only — clipboard content could be a password or other sensitive text.
+        logger.info("set_clipboard machine=%s %d character(s)", machine, len(text))
+        return await client.set_clipboard(machine, text)
 
     return server

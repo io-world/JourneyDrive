@@ -132,3 +132,11 @@ class JourneyCaptureClient:
             "POST", f"/machines/{machine}/keyboard/key", json={"keys": keys, "action": action}
         )
         return resp.json()
+
+    async def get_clipboard(self, machine: str) -> str:
+        resp = await self._request("GET", f"/machines/{machine}/clipboard")
+        return resp.json()["text"]
+
+    async def set_clipboard(self, machine: str, text: str) -> dict:
+        resp = await self._request("POST", f"/machines/{machine}/clipboard", json={"text": text})
+        return resp.json()

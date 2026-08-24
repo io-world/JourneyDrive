@@ -120,11 +120,12 @@ how close together they are, since each is a fully separate round trip).
 
 One tool per REST endpoint the broker exposes (`journeycapture_mcp/server.py`) —
 `list_machines`, `health_check`, `list_monitors`, `take_screenshot`, `preview_click`,
-`move_mouse`, `click_mouse`, `scroll_mouse`, `type_text`, `send_keys`. Every tool
-except `list_machines` takes a required `machine` id — call `list_machines` first to
-see what's connected. Tool descriptions mirror the broker's own OpenAPI descriptions
-(coordinate origin, scroll units, valid key names), which in turn mirror the thin
-client's original ones — see `CLAUDE.md`'s architecture section.
+`move_mouse`, `click_mouse`, `scroll_mouse`, `type_text`, `send_keys`,
+`get_clipboard`, `set_clipboard`. Every tool except `list_machines` takes a required
+`machine` id — call `list_machines` first to see what's connected. Tool descriptions
+mirror the broker's own OpenAPI descriptions (coordinate origin, scroll units, valid
+key names), which in turn mirror the thin client's original ones — see `CLAUDE.md`'s
+architecture section.
 
 `take_screenshot` returns MCP image content (base64-encoded), not a file path or raw
 bytes — nothing is written to disk on the controller side unless screenshot-saving
@@ -170,14 +171,29 @@ a correction — only call `click_mouse` once the marker actually lines up. The 
 `monitor` is used to both resolve the coordinate and capture the screenshot, so the
 marker's position is always consistent with the image it's drawn on.
 
+### Cropping a screenshot (`fx1`/`fy1`/`fx2`/`fy2`)
+
+`take_screenshot` also accepts an optional region crop: `fx1`/`fy1` (top-left corner)
+and `fx2`/`fy2` (bottom-right corner), each a fraction 0.0–1.0 of the target
+monitor's width/height — same fractional-coordinate reasoning as `fx`/`fy` above,
+just for a rectangle instead of a point. Useful for zooming in on a small target
+(a tab, a dialog button) so it's legible in the returned image instead of being lost
+in detail a full-monitor screenshot compresses away for chat display. All four must
+be given together; `fx1`/`fy1` must resolve to a pixel position strictly before
+`fx2`/`fy2` — an inverted or zero-size region is rejected with a clear error rather
+than silently failing. A cropped result is always PNG, regardless of the `format`
+argument.
+
 ### Saving screenshots locally
 
 Off by default. Set `save_screenshots: true` (config file) or
 `JOURNEYCAPTURE_MCP_SAVE_SCREENSHOTS=1` (env var) to also save a timestamped copy of
-every `take_screenshot` result to `screenshot_dir` (default `screenshots/`, created if
-missing, relative to wherever `journeycapture-mcp` was run from) — useful for
-debugging what the model actually saw. Filenames are UTC timestamps down to the
-microsecond (`20260819T235959_123456.jpeg`), so concurrent/rapid screenshots don't
+every `take_screenshot` result — the cropped version, if a crop was requested, since
+the point is debugging what the model actually saw — to `screenshot_dir` (default
+`screenshots/`, created if missing, relative to wherever `journeycapture-mcp` was run
+from). Filenames are UTC timestamps down to the
+microsecond (e.g. `20260819T235959_123456.jpeg`, or `.png` for a cropped result), so
+concurrent/rapid screenshots don't
 collide, but they aren't namespaced by machine — if you're saving screenshots from
 more than one machine, they land in the same folder. A save failure (disk full,
 permissions) logs a warning but doesn't fail the underlying `take_screenshot` call —
@@ -195,6 +211,20 @@ this server's own local config — fetched once at startup and overriding the
 matching local value for whichever keys the broker actually has configured, with
 the local config file only acting as the fallback. See `docs/BROKER.md`'s
 "Broker-pushed config" section.
+
+### Clipboard access (`get_clipboard`/`set_clipboard`)
+
+`get_clipboard(machine)` reads the current text content of the remote clipboard;
+`set_clipboard(machine, text)` writes to it. Both use `pyperclip` on the thin client
+side — a base dependency, no extra install needed.
+
+Writing to the clipboard and then `send_keys(machine, ["ctrl", "v"])` is faster and
+more reliable than `type_text` for long strings (URLs, code blocks, paragraphs),
+since the text is pasted as a single operation instead of sent one character at a
+time. `get_clipboard` lets a model inspect what the user just copied on the remote
+machine without needing a screenshot. Clipboard content is logged as a character
+count only, never the text itself — same privacy carve-out `type_text` uses, since
+either could be a password.
 
 ## Testing
 
