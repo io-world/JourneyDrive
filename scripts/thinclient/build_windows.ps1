@@ -5,10 +5,17 @@
     Skip the pytest run before building.
 .PARAMETER OpenDist
     Open the dist\ folder in Explorer after a successful build.
+.PARAMETER NoPause
+    Don't wait for a keypress before closing. Double-clicking (or "Run with
+    PowerShell") launches this in its own console that closes the instant the
+    script exits, taking any error message with it — the default pause keeps
+    that window open. Pass -NoPause when running from an existing terminal or
+    from CI, where the window (or the calling process) sticks around anyway.
 #>
 param(
     [switch]$SkipTests,
-    [switch]$OpenDist
+    [switch]$OpenDist,
+    [switch]$NoPause
 )
 
 Set-StrictMode -Version Latest
@@ -20,7 +27,16 @@ Set-Location $Root
 
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Ok($msg)   { Write-Host "    $msg" -ForegroundColor Green }
-function Fail($msg) { Write-Host "    ERROR: $msg" -ForegroundColor Red; exit 1 }
+
+function Finish($exitCode) {
+    if (-not $NoPause) {
+        Write-Host "`nPress Enter to close..." -ForegroundColor DarkGray
+        Read-Host | Out-Null
+    }
+    exit $exitCode
+}
+
+function Fail($msg) { Write-Host "    ERROR: $msg" -ForegroundColor Red; Finish 1 }
 
 # -- 1. Check uv ---------------------------------------------------------------
 Step "Checking for uv"
@@ -85,3 +101,5 @@ Write-Host "`n==> Build finished successfully." -ForegroundColor Green
 Write-Host "    Run with:  cd dist ; .\${ExeName}.exe" -ForegroundColor White
 
 if ($OpenDist) { Start-Process explorer.exe "$Root\dist" }
+
+Finish 0
