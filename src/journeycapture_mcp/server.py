@@ -103,7 +103,9 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
             draw = ImageDraw.Draw(img)
             color = (255, 0, 255)  # magenta — visible against most desktop backgrounds
             outline = (0, 0, 0)
-            size, half_width, gap = 14, 5, 4
+            # Scale marker so it stays visible when the image is rendered small in a chat UI.
+            s = max(img.width, img.height) / 1000
+            size, half_width, gap = max(14, int(22 * s)), max(5, int(8 * s)), max(4, int(5 * s))
             # Four filled arrowheads pointing at the target, not a thin-line cross —
             # a solid fill survives JPEG block compression far better than a 1-3px
             # line, which is what made the old crosshair blur into the background.
@@ -115,7 +117,8 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
             ]
             for triangle in arrows:
                 draw.polygon(triangle, fill=color, outline=outline, width=2)
-            draw.ellipse([marker_x - 2, marker_y - 2, marker_x + 2, marker_y + 2], fill=color)
+            r = max(2, int(3 * s))
+            draw.ellipse([marker_x - r, marker_y - r, marker_x + r, marker_y + r], fill=color)
             out = io.BytesIO()
             img.save(out, format="PNG")
             return out.getvalue()
@@ -150,11 +153,13 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         fy1: float | None = None,
         fx2: float | None = None,
         fy2: float | None = None,
-    ) -> Image:
+    ) -> list:
         """Capture a screenshot of one monitor on the given machine. format/quality default to that machine's own config when omitted; monitor index comes from list_monitors. Measure coordinates against this image's actual pixel dimensions (or list_monitors) — don't assume a resolution. Optionally crop to a region: fx1/fy1 is the top-left corner and fx2/fy2 is the bottom-right corner, each as a fraction 0.0-1.0 of the monitor's width/height — useful for zooming in on a small target to read it more clearly. fx1 must be less than fx2, and fy1 less than fy2. A cropped result is always PNG, regardless of the requested format."""
         logger.info("take_screenshot machine=%s format=%s quality=%s monitor=%s fx1=%s fy1=%s fx2=%s fy2=%s", machine, format, quality, monitor, fx1, fy1, fx2, fy2)
         data, content_type = await client.screenshot(machine, format=format, quality=quality, monitor=monitor)
         image_format = "png" if "png" in content_type else "jpeg"
+        crop_w: int | None = None
+        crop_h: int | None = None
         if fx1 is not None or fy1 is not None or fx2 is not None or fy2 is not None:
             if None in (fx1, fy1, fx2, fy2):
                 raise ValueError("fx1, fy1, fx2, and fy2 must all be provided together for region crop.")
@@ -174,11 +179,18 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
                 cropped.save(out, format="PNG")
                 data = out.getvalue()
             image_format = "png"
+            crop_w, crop_h = x2 - x1, y2 - y1
         # Saved *after* any crop, so the debug copy on disk always matches what the
         # model actually received — not the full pre-crop capture.
         if settings.save_screenshots:
             _save_screenshot(data, image_format)
-        return Image(data=data, format=image_format)
+        if crop_w is not None:
+            return [
+                f"Cropped screenshot: {crop_w}\u00d7{crop_h}px (region fx1={fx1} fy1={fy1} to fx2={fx2} fy2={fy2} on a {w}\u00d7{h} monitor). "
+                "Use these pixel dimensions when computing fractional coordinates from this image.",
+                Image(data=data, format=image_format),
+            ]
+        return [Image(data=data, format=image_format)]
 
     @server.tool()
     async def preview_click(
@@ -188,7 +200,7 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         fx: float | None = None,
         fy: float | None = None,
         monitor: int | None = None,
-    ) -> Image:
+    ) -> list:
         """Preview where click_mouse would land, WITHOUT clicking: takes a fresh screenshot and draws a magenta crosshair at the resolved x/y (pixels) or fx/fy (fraction 0.0-1.0) position. Use this before click_mouse on small or ambiguous targets (tabs, sidebar thumbnails, anything near another clickable element) to visually confirm the marker actually lands on the intended target — a fraction estimated by eye from a screenshot has no other way to be verified before the click commits. If the marker is off-target, adjust fx/fy and call this again rather than guessing a correction; only call click_mouse once the marker looks right. monitor selects which monitor fx/fy is relative to (default: the primary physical monitor, same as list_monitors index 1) — the same monitor is used both to resolve the coordinate and to capture the screenshot, so the marker is always positioned consistently with the image."""
         monitors = await client.list_monitors(machine)
         resolved_monitor = monitor if monitor is not None else (1 if len(monitors) > 1 else 0)
@@ -203,7 +215,14 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
         except IndexError:
             raise ValueError(f"monitor index {resolved_monitor} out of range (0..{len(monitors) - 1})") from None
         annotated = _draw_crosshair(data, resolved_x - target["left"], resolved_y - target["top"])
-        return Image(data=annotated, format="png")
+        fx_resolved = (resolved_x - target["left"]) / target["width"]
+        fy_resolved = (resolved_y - target["top"]) / target["height"]
+        return [
+            f"Marker at pixel ({resolved_x}, {resolved_y}) on monitor {resolved_monitor} "
+            f"({target['width']}\u00d7{target['height']}). "
+            f"As fractions of that monitor: fx={fx_resolved:.3f}, fy={fy_resolved:.3f}.",
+            Image(data=annotated, format="png"),
+        ]
 
     @server.tool()
     async def move_mouse(

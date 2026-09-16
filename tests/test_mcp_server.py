@@ -241,8 +241,9 @@ async def test_preview_click_returns_annotated_png(server, client: AsyncMock) ->
     client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
     result = await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
     assert not result.is_error
-    assert result.content[0].type == "image"
-    assert result.content[0].mime_type == "image/png"
+    assert result.content[0].type == "text"
+    assert result.content[1].type == "image"
+    assert result.content[1].mime_type == "image/png"
 
 
 @pytest.mark.asyncio
@@ -262,7 +263,7 @@ async def test_preview_click_draws_marker_at_resolved_position(server, client: A
 
     result = await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
 
-    annotated_bytes = base64.b64decode(result.content[0].data)
+    annotated_bytes = base64.b64decode(result.content[1].data)
     annotated = PILImage.open(io.BytesIO(annotated_bytes)).convert("RGB")
     # fx=0.5, fy=0.5 on a 200x100 image resolves to (100, 50) — the crosshair's
     # own pixel there must no longer be the plain background color.
@@ -300,8 +301,9 @@ async def test_take_screenshot_crop_returns_cropped_region(server, client: Async
     )
 
     assert not result.is_error
-    assert result.content[0].mime_type == "image/png"
-    cropped = PILImage.open(io.BytesIO(base64.b64decode(result.content[0].data)))
+    assert result.content[0].type == "text"
+    assert result.content[1].mime_type == "image/png"
+    cropped = PILImage.open(io.BytesIO(base64.b64decode(result.content[1].data)))
     assert cropped.size == (100, 50)
 
 
@@ -318,7 +320,7 @@ async def test_take_screenshot_crop_uses_specified_monitor(server, client: Async
         "take_screenshot", {"machine": MACHINE, "fx1": 0.0, "fy1": 0.0, "fx2": 0.5, "fy2": 0.5, "monitor": 2}
     )
 
-    cropped = PILImage.open(io.BytesIO(base64.b64decode(result.content[0].data)))
+    cropped = PILImage.open(io.BytesIO(base64.b64decode(result.content[1].data)))
     assert cropped.size == (960, 540)
     client.screenshot.assert_called_once_with(MACHINE, format=None, quality=None, monitor=2)
 
@@ -377,7 +379,7 @@ async def test_take_screenshot_saved_copy_matches_cropped_result(client: AsyncMo
         "take_screenshot", {"machine": MACHINE, "fx1": 0.25, "fy1": 0.25, "fx2": 0.75, "fy2": 0.75}
     )
 
-    returned = PILImage.open(io.BytesIO(base64.b64decode(result.content[0].data)))
+    returned = PILImage.open(io.BytesIO(base64.b64decode(result.content[1].data)))
     saved_files = list((tmp_path / "shots").glob("*.png"))
     assert len(saved_files) == 1
     saved = PILImage.open(saved_files[0])
