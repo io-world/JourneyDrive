@@ -53,7 +53,10 @@ async def test_handler_sends_config_push_after_ack() -> None:
     settings = _base_settings(machine_profiles={"office-pc": {"log_level": "DEBUG"}})
     registry = Mock()
     websocket = AsyncMock()
-    websocket.recv.return_value = json.dumps({"machine_id": "office-pc", "api_key": "b" * 32})
+    websocket.recv.side_effect = [
+        json.dumps({"machine_id": "office-pc", "api_key": "b" * 32}),
+        json.dumps({"type": "monitors", "monitors": [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]}),
+    ]
     websocket.__aiter__ = _empty_aiter
 
     handler = _make_handler(settings, registry)
@@ -64,7 +67,9 @@ async def test_handler_sends_config_push_after_ack() -> None:
     config_push = json.loads(websocket.send.call_args_list[1].args[0])
     assert ack == {"ok": True}
     assert config_push == {"type": "config", "log_level": "DEBUG"}
-    registry.register.assert_called_once_with("office-pc", websocket)
+    registry.register.assert_called_once_with(
+        "office-pc", websocket, monitors=[{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]
+    )
 
 
 @pytest.mark.asyncio
@@ -72,7 +77,10 @@ async def test_handler_sends_empty_config_push_when_no_profile() -> None:
     settings = _base_settings()
     registry = Mock()
     websocket = AsyncMock()
-    websocket.recv.return_value = json.dumps({"machine_id": "office-pc", "api_key": "b" * 32})
+    websocket.recv.side_effect = [
+        json.dumps({"machine_id": "office-pc", "api_key": "b" * 32}),
+        json.dumps({"type": "monitors", "monitors": []}),
+    ]
     websocket.__aiter__ = _empty_aiter
 
     handler = _make_handler(settings, registry)
@@ -80,3 +88,18 @@ async def test_handler_sends_empty_config_push_when_no_profile() -> None:
 
     config_push = json.loads(websocket.send.call_args_list[1].args[0])
     assert config_push == {"type": "config"}
+
+
+@pytest.mark.asyncio
+async def test_handler_drops_connection_on_malformed_monitors_frame() -> None:
+    settings = _base_settings()
+    registry = Mock()
+    websocket = AsyncMock()
+    websocket.recv.side_effect = [json.dumps({"machine_id": "office-pc", "api_key": "b" * 32}), "not json"]
+    websocket.__aiter__ = _empty_aiter
+
+    handler = _make_handler(settings, registry)
+    await handler(websocket)
+
+    registry.register.assert_not_called()
+    assert websocket.send.call_count == 1  # ack only

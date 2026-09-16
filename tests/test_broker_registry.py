@@ -108,9 +108,28 @@ def test_connected_machines(settings: Settings) -> None:
     assert registry.connected_machines() == []
     websocket = AsyncMock()
     registry.register("office-pc", websocket)
-    assert registry.connected_machines() == ["office-pc"]
+    assert registry.connected_machines() == [{"machine_id": "office-pc", "monitors": []}]
     registry.unregister("office-pc", websocket)
     assert registry.connected_machines() == []
+
+
+def test_connected_machines_includes_monitors(settings: Settings) -> None:
+    registry = ConnectionRegistry(settings)
+    websocket = AsyncMock()
+    monitors = [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]
+    registry.register("office-pc", websocket, monitors=monitors)
+    assert registry.connected_machines() == [{"machine_id": "office-pc", "monitors": monitors}]
+
+
+def test_get_monitors(settings: Settings) -> None:
+    registry = ConnectionRegistry(settings)
+    assert registry.get_monitors("office-pc") is None
+    websocket = AsyncMock()
+    monitors = [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]
+    registry.register("office-pc", websocket, monitors=monitors)
+    assert registry.get_monitors("office-pc") == monitors
+    registry.unregister("office-pc", websocket)
+    assert registry.get_monitors("office-pc") is None
 
 
 def test_stale_unregister_does_not_evict_newer_connection(settings: Settings) -> None:
@@ -121,12 +140,13 @@ def test_stale_unregister_does_not_evict_newer_connection(settings: Settings) ->
     ws_a = AsyncMock()
     ws_b = AsyncMock()
 
+    b_monitors = [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]
     registry.register("office-pc", ws_a)
-    registry.register("office-pc", ws_b)  # B reconnects before A's disconnect is noticed
-    assert registry.connected_machines() == ["office-pc"]
+    registry.register("office-pc", ws_b, monitors=b_monitors)  # B reconnects before A's disconnect is noticed
+    assert registry.connected_machines() == [{"machine_id": "office-pc", "monitors": b_monitors}]
 
     registry.unregister("office-pc", ws_a)  # A's stale handler finally-block fires late
-    assert registry.connected_machines() == ["office-pc"]  # B is still connected
+    assert registry.connected_machines() == [{"machine_id": "office-pc", "monitors": b_monitors}]  # B is still connected
 
     registry.handle_text_frame("office-pc", ws_a, {"id": "some-stale-id", "result": {}})  # must be a no-op
 

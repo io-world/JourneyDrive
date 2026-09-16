@@ -5,6 +5,7 @@ import secrets
 from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
+from pydantic import BaseModel
 
 from journeycapture_broker.config import Settings
 from journeycapture_broker.registry import ConnectionRegistry, MachineError, MachineNotConnected, MachineTimeout
@@ -23,6 +24,11 @@ from journeycapture_windows_thinclient.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class MachineInfo(BaseModel):
+    machine_id: str
+    monitors: list[MonitorInfo]
 
 
 def create_app(settings: Settings, registry: ConnectionRegistry) -> FastAPI:
@@ -47,9 +53,10 @@ def create_app(settings: Settings, registry: ConnectionRegistry) -> FastAPI:
         except MachineError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
 
-    @app.get("/machines")
-    def list_machines() -> list[str]:
-        """List machine IDs currently connected to this broker."""
+    @app.get("/machines", response_model=list[MachineInfo])
+    def list_machines() -> list[dict]:
+        """List machines currently connected to this broker, each with its monitor
+        layout as reported once at connection time (not re-queried on every call)."""
         return registry.connected_machines()
 
     @app.get("/mcp-config")
@@ -66,9 +73,14 @@ def create_app(settings: Settings, registry: ConnectionRegistry) -> FastAPI:
         return result
 
     @app.get("/machines/{machine_id}/screenshot/monitors", response_model=list[MonitorInfo])
-    async def screenshot_monitors(machine_id: str) -> list[dict]:
-        result, _ = await _call(machine_id, "screenshot_monitors", {})
-        return result
+    def screenshot_monitors(machine_id: str) -> list[dict]:
+        """Monitor layout for one machine, from the cache populated when it
+        connected (see GET /machines) — not a live query, since a machine's
+        monitor layout is assumed stable for the life of its connection."""
+        monitors = registry.get_monitors(machine_id)
+        if monitors is None:
+            raise HTTPException(status_code=404, detail=f"machine {machine_id!r} is not connected")
+        return monitors
 
     @app.get("/machines/{machine_id}/screenshot")
     async def screenshot(

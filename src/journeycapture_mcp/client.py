@@ -53,7 +53,7 @@ class JourneyCaptureClient:
             raise JourneyCaptureError(f"{method} {path} -> {resp.status_code}: {resp.text}")
         return resp
 
-    async def list_machines(self) -> list[str]:
+    async def list_machines(self) -> list[dict]:
         resp = await self._request("GET", "/machines")
         return resp.json()
 

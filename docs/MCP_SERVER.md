@@ -127,6 +127,13 @@ mirror the broker's own OpenAPI descriptions (coordinate origin, scroll units, v
 key names), which in turn mirror the thin client's original ones — see `CLAUDE.md`'s
 architecture section.
 
+`list_machines` returns each connected machine's id *and* its monitor layout —
+`[{"machine_id": ..., "monitors": [...]}, ...]`, the same shape `list_monitors`
+returns for one machine — so resolution is known before ever calling
+`list_monitors` separately. Both `list_machines`'s monitor data and `list_monitors`
+itself read a cache the broker populates once when that machine connects, not a
+live query — see `docs/BROKER.md`'s "Monitor layout is cached, not live-queried".
+
 `take_screenshot` returns MCP image content (base64-encoded), not a file path or raw
 bytes — nothing is written to disk on the controller side unless screenshot-saving
 (below) is enabled.
@@ -163,8 +170,10 @@ or targets next to other clickable elements. There was previously no way to chec
 
 `preview_click(machine, x=None, y=None, fx=None, fy=None, monitor=None)` takes the
 exact same coordinate arguments as `click_mouse`, but instead of clicking, it returns
-a fresh screenshot with a magenta crosshair drawn at the resolved position — nothing
-on the target machine is touched. Use it before `click_mouse` on anything small or
+a fresh screenshot with a magenta marker (four small filled arrows pointing at the
+resolved position, plus a dot exactly on it — a filled shape, chosen over a thin
+crosshair line because it stays legible even under JPEG compression) — nothing on
+the target machine is touched. Use it before `click_mouse` on anything small or
 ambiguous: call it, look at where the marker landed relative to the intended target,
 and if it's off, adjust `fx`/`fy` and call `preview_click` again rather than guessing
 a correction — only call `click_mouse` once the marker actually lines up. The same
@@ -192,8 +201,8 @@ every `take_screenshot` result — the cropped version, if a crop was requested,
 the point is debugging what the model actually saw — to `screenshot_dir` (default
 `screenshots/`, created if missing, relative to wherever `journeycapture-mcp` was run
 from). Filenames are UTC timestamps down to the
-microsecond (e.g. `20260819T235959_123456.jpeg`, or `.png` for a cropped result), so
-concurrent/rapid screenshots don't
+microsecond (e.g. `20260819T235959_123456.png` — PNG is the default capture format,
+`.jpeg` only if a machine or call explicitly opts into it), so concurrent/rapid screenshots don't
 collide, but they aren't namespaced by machine — if you're saving screenshots from
 more than one machine, they land in the same folder. A save failure (disk full,
 permissions) logs a warning but doesn't fail the underlying `take_screenshot` call —

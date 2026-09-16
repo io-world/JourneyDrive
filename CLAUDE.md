@@ -231,6 +231,13 @@ at — no scale-factor guessing needed, ever. Prefer `fx`/`fy` over `x`/`y` when
 target was identified visually from a screenshot. See `docs/MCP_SERVER.md`'s
 "Fractional coordinates" section and `docs/CHANGELOG.md`'s corresponding entry.
 
+The monitor dimensions behind all of this (`list_monitors`, `list_machines`, and
+`fx`/`fy` resolution) are read from a broker-side cache populated once when a
+machine connects, not queried live from the machine on every call — a deliberate
+tradeoff (round trip saved, under the assumption a machine's monitor layout is
+stable for the life of its connection) rather than an oversight. A reconnect
+refreshes it. See `docs/BROKER.md`'s "Monitor layout is cached, not live-queried".
+
 ### Screenshot/pixel control is deliberate, not a limitation to patch
 
 UI Automation (UIA)-based element targeting — asking Windows directly "where is the
@@ -440,9 +447,13 @@ Lives in `src/journeycapture_mcp/`. Its dependencies (`mcp`, `httpx`) sit under 
 - **`server.py`** — `build_server(client, settings)` builds an `MCPServer`
   (`mcp.server.mcpserver.MCPServer` — this SDK's current name for what used to be
   called `FastMCP`) and registers one `@server.tool()` per broker endpoint, plus
-  `list_machines` (new — lets an LLM discover what's connected before picking a
-  target). Every tool except `list_machines` takes a required `machine` parameter,
-  passed straight through to `client`. `take_screenshot` returns
+  `list_machines` (lets an LLM discover what's connected before picking a target,
+  along with each machine's monitor layout — see "Monitor layout is cached, not
+  live-queried" in `docs/BROKER.md`; unlike every other tool it's not a 1:1
+  passthrough to a broker endpoint of the same shape, since the broker aggregates
+  connected-machine ids with their cached monitor data). Every tool except
+  `list_machines` takes a required `machine` parameter, passed straight through
+  to `client`. `take_screenshot` returns
   `mcp.server.mcpserver.Image` (base64-encoded image content), not raw bytes or a
   file path — the one endpoint needing translation rather than a passthrough — and,
   when `settings.save_screenshots` is on, also writes a timestamped copy to

@@ -50,12 +50,20 @@ def _make_handler(settings: Settings, registry: ConnectionRegistry):
             return
 
         await websocket.send(json.dumps({"ok": True}))
-        # Always sent, even when empty — a fixed handshake/ack/config sequence is
-        # simpler for any client (this repo's or a third-party agent's, see
-        # docs/THIN_AGENT_PLAYBOOK.md) to implement than a conditional one.
+
+        try:
+            monitors_raw = await websocket.recv()
+            monitors_msg = json.loads(monitors_raw)
+            monitors = monitors_msg.get("monitors", [])
+        except (websockets.exceptions.ConnectionClosed, json.JSONDecodeError):
+            return
+
+        # Always sent, even when empty — a fixed handshake/ack/monitors/config
+        # sequence is simpler for any client (this repo's or a third-party agent's,
+        # see docs/THIN_AGENT_PLAYBOOK.md) to implement than a conditional one.
         profile = settings.machine_profiles.get(machine_id, {})
         await websocket.send(json.dumps({"type": "config", **profile}))
-        registry.register(machine_id, websocket)
+        registry.register(machine_id, websocket, monitors=monitors)
         try:
             async for raw in websocket:
                 if isinstance(raw, bytes):

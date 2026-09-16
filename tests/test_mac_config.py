@@ -28,7 +28,7 @@ def test_valid_config_parses_with_defaults(tmp_path: Path) -> None:
     assert config.broker_host == "192.168.1.10"
     assert config.broker_port == 8601
     assert config.machine_id == "macbook-pro"
-    assert config.screenshot.format == "jpeg"
+    assert config.screenshot.format == "png"
     assert config.screenshot.quality == 75
     assert config.log_level == "INFO"
     assert config.log_file == "journeycapture-mac.log"

@@ -39,11 +39,20 @@ async def test_list_machines(settings: Settings) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         seen["path"] = request.url.path
         seen["api_key"] = request.headers.get("X-API-Key")
-        return httpx.Response(200, json=["office-pc", "home-pc"])
+        return httpx.Response(
+            200,
+            json=[
+                {"machine_id": "office-pc", "monitors": []},
+                {"machine_id": "home-pc", "monitors": []},
+            ],
+        )
 
     client = make_client(settings, handler)
     result = await client.list_machines()
-    assert result == ["office-pc", "home-pc"]
+    assert result == [
+        {"machine_id": "office-pc", "monitors": []},
+        {"machine_id": "home-pc", "monitors": []},
+    ]
     assert seen["path"] == "/machines"
     assert seen["api_key"] == "a" * 32
 

@@ -101,30 +101,32 @@ def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
             marker_x = max(0, min(img.width - 1, marker_x))
             marker_y = max(0, min(img.height - 1, marker_y))
             draw = ImageDraw.Draw(img)
-            radius = 18
             color = (255, 0, 255)  # magenta — visible against most desktop backgrounds
             outline = (0, 0, 0)
-            # A dark outline first, then the colored cross/circle on top, so the
-            # marker stays visible against both light and dark screen content.
-            for ox, oy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
-                draw.line(
-                    [(marker_x - radius + ox, marker_y + oy), (marker_x + radius + ox, marker_y + oy)],
-                    fill=outline, width=1,
-                )
-                draw.line(
-                    [(marker_x + ox, marker_y - radius + oy), (marker_x + ox, marker_y + radius + oy)],
-                    fill=outline, width=1,
-                )
-            draw.line([(marker_x - radius, marker_y), (marker_x + radius, marker_y)], fill=color, width=3)
-            draw.line([(marker_x, marker_y - radius), (marker_x, marker_y + radius)], fill=color, width=3)
-            draw.ellipse([marker_x - 6, marker_y - 6, marker_x + 6, marker_y + 6], outline=color, width=2)
+            size, half_width, gap = 14, 5, 4
+            # Four filled arrowheads pointing at the target, not a thin-line cross —
+            # a solid fill survives JPEG block compression far better than a 1-3px
+            # line, which is what made the old crosshair blur into the background.
+            arrows = [
+                [(marker_x, marker_y - gap), (marker_x - half_width, marker_y - gap - size), (marker_x + half_width, marker_y - gap - size)],  # top, points down
+                [(marker_x, marker_y + gap), (marker_x - half_width, marker_y + gap + size), (marker_x + half_width, marker_y + gap + size)],  # bottom, points up
+                [(marker_x - gap, marker_y), (marker_x - gap - size, marker_y - half_width), (marker_x - gap - size, marker_y + half_width)],  # left, points right
+                [(marker_x + gap, marker_y), (marker_x + gap + size, marker_y - half_width), (marker_x + gap + size, marker_y + half_width)],  # right, points left
+            ]
+            for triangle in arrows:
+                draw.polygon(triangle, fill=color, outline=outline, width=2)
+            draw.ellipse([marker_x - 2, marker_y - 2, marker_x + 2, marker_y + 2], fill=color)
             out = io.BytesIO()
             img.save(out, format="PNG")
             return out.getvalue()
 
     @server.tool()
-    async def list_machines() -> list[str]:
-        """List machine ids currently connected to the broker. Call this first — every other tool needs a machine id from here."""
+    async def list_machines() -> list[dict]:
+        """List machines currently connected to the broker, each with its monitor
+        layout (machine_id, monitors) — resolution reported once when that machine
+        connected to the broker, not re-queried here. Call this first — every other
+        tool needs a machine id from here."""
+        logger.info("list_machines")
         return await client.list_machines()
 
     @server.tool()

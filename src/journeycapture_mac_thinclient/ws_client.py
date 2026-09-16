@@ -81,10 +81,6 @@ def _handle_health(config: Config, params: dict) -> Any:
     return {"status": "ok", "version": _VERSION}
 
 
-def _handle_screenshot_monitors(config: Config, params: dict) -> Any:
-    return [m.model_dump() for m in capture.list_monitors()]
-
-
 def _handle_mouse_move(config: Config, params: dict) -> Any:
     body = MouseMoveRequest.model_validate(params)
     x, y = input_control.move_mouse(body.x, body.y, relative=body.relative)
@@ -138,7 +134,6 @@ def _handle_clipboard_set(config: Config, params: dict) -> Any:
 
 _HANDLERS: dict[str, Callable[[Config, dict], Any]] = {
     "health": _handle_health,
-    "screenshot_monitors": _handle_screenshot_monitors,
     "mouse_move": _handle_mouse_move,
     "mouse_click": _handle_mouse_click,
     "mouse_scroll": _handle_mouse_scroll,
@@ -240,8 +235,15 @@ async def run(config: Config) -> None:
 
             logger.info("registered with broker %s as machine_id=%s", uri, config.machine_id)
 
-            # The broker always sends exactly one more frame right after the ack —
-            # its pushed operational config for this machine_id, {} if it has none
+            # Report our monitor layout once per (re)connect — the broker caches it
+            # and serves it from list_machines/list_monitors without a live round
+            # trip on every call. Sent right after the ack, before the config push,
+            # so it's ready before anything else touches this connection.
+            monitors = [m.model_dump() for m in capture.list_monitors()]
+            await websocket.send(json.dumps({"type": "monitors", "monitors": monitors}))
+
+            # The broker always sends exactly one more frame right after that — its
+            # pushed operational config for this machine_id, {} if it has none
             # configured. Applied fresh on every (re)connect, not just the first.
             config_push = json.loads(await websocket.recv())
             _apply_config_push(config, config_push)

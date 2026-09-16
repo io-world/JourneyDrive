@@ -20,14 +20,6 @@ def test_handle_health(config: Config) -> None:
     assert "version" in result
 
 
-def test_handle_screenshot_monitors(config: Config) -> None:
-    fake_monitor = Mock()
-    fake_monitor.model_dump.return_value = {"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}
-    with patch("journeycapture_windows_thinclient.ws_client.capture.list_monitors", return_value=[fake_monitor]):
-        result = ws_client._handle_screenshot_monitors(config, {})
-    assert result == [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]
-
-
 def test_handle_mouse_move(config: Config) -> None:
     with patch("journeycapture_windows_thinclient.ws_client.input_control.move_mouse", return_value=(10, 20)) as mock_move:
         result = ws_client._handle_mouse_move(config, {"x": 10, "y": 20})
@@ -172,11 +164,19 @@ async def test_run_applies_broker_pushed_config_then_stops(config: Config) -> No
     async def fake_connect(*args, **kwargs):
         yield websocket
 
-    with patch("journeycapture_windows_thinclient.ws_client.websockets.connect", fake_connect):
+    fake_monitor = Mock()
+    fake_monitor.model_dump.return_value = {"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}
+    with (
+        patch("journeycapture_windows_thinclient.ws_client.websockets.connect", fake_connect),
+        patch("journeycapture_windows_thinclient.ws_client.capture.list_monitors", return_value=[fake_monitor]),
+    ):
         await ws_client.run(config)
 
     assert config.screenshot.format == "png"
     assert config.log_level == "DEBUG"
+    assert websocket.send.call_args_list[1].args[0] == json.dumps(
+        {"type": "monitors", "monitors": [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]}
+    )
 
 
 @pytest.mark.asyncio

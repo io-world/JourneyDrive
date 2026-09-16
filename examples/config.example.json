@@ -6,7 +6,7 @@
   "broker_tls": false,
   "broker_cert_fingerprint": "replace-with-the-broker-certificate's-sha256-fingerprint-if-broker_tls-is-true",
   "screenshot": {
-    "format": "jpeg",
+    "format": "png",
     "quality": 75,
     "monitor": 0
   },

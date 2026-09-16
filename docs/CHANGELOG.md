@@ -2,6 +2,44 @@
 
 Notable changes to JourneyCapture, newest first. Commit hashes refer to `main`.
 
+## 2026-09-16 — Fix `preview_click` marker visibility, default to PNG, cache monitor layout
+
+Three related fixes to click-coordination precision, reported after live use of
+`preview_click`/fractional coordinates surfaced two problems: the marker was hard
+to see, and every monitor query (including the coordinate math behind every
+`fx`/`fy` call) was a live round trip to the target machine before the actual
+action could even happen.
+
+- **`preview_click`'s crosshair was hard to see**: it was drawn as thin 1-3px
+  lines, which is exactly what JPEG's block-based compression mangles worst —
+  the marker blurred into the background on a JPEG-captured screenshot (the
+  default format at the time). Replaced with four small filled arrowhead
+  triangles pointing at the target plus a solid dot on the exact pixel — a
+  filled shape survives compression far better than a thin line.
+- **JPEG was the default capture format everywhere**, which was the root cause
+  behind the above and behind imprecise visual verification generally. PNG
+  (lossless) is now the default in both thin clients' `ScreenshotConfig` and
+  `capture.take_screenshot`; JPEG is still fully supported as an explicit
+  opt-in (`format="jpeg"`, or a `machine_profiles` override).
+- **Every monitor query was a live round trip**: `list_machines`, `list_monitors`,
+  and the `fx`/`fy` coordinate resolution behind `move_mouse`/`click_mouse`/
+  `preview_click`/`take_screenshot`'s crop all hit the broker → websocket →
+  thin client → back on every single call. Under the assumption a machine's
+  monitor layout doesn't change mid-session, each thin client now reports its
+  monitor layout once via a new wire-protocol frame (`{"type": "monitors", ...}`,
+  sent right after the handshake ack, before the config push) and the broker
+  caches it for the life of that connection; `GET /machines` and
+  `GET /machines/{id}/screenshot/monitors` both now serve from that cache
+  instead of a live query. A reconnect (automatic on a dropped connection, or a
+  manual restart) refreshes it. The now-unused live `screenshot_monitors`
+  websocket method was removed from both thin clients as dead code — nothing
+  calls it anymore now that both HTTP routes are cache-backed.
+- `journeycapture_mcp`'s `list_machines` tool is simpler than before as a
+  result — it returns the broker's already-aggregated
+  `[{"machine_id": ..., "monitors": [...]}, ...]` directly, no per-machine
+  fan-out needed. `list_monitors` and `fx`/`fy` resolution needed no code
+  changes at all — they call the same client method, which is now just faster.
+
 ## 2026-08-24 — Add clipboard access and screenshot region crop
 
 Two of the three ideas from `docs/FUTURE_FEATURES.md` implemented: `get_clipboard`/

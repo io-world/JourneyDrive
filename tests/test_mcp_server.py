@@ -42,7 +42,9 @@ def server(client: AsyncMock, settings: Settings):
 
 @pytest.mark.asyncio
 async def test_list_machines_calls_client(server, client: AsyncMock) -> None:
-    client.list_machines.return_value = ["office-pc", "home-pc"]
+    client.list_machines.return_value = [
+        {"machine_id": "office-pc", "monitors": [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]},
+    ]
     result = await server.call_tool("list_machines", {})
     client.list_machines.assert_called_once_with()
     assert not result.is_error

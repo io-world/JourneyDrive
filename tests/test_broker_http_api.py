@@ -55,10 +55,28 @@ def test_docs_routes_disabled(client: TestClient, path: str) -> None:
 
 
 def test_list_machines(client: TestClient, auth_headers: dict, registry: Mock) -> None:
-    registry.connected_machines.return_value = ["office-pc"]
+    registry.connected_machines.return_value = [
+        {"machine_id": "office-pc", "monitors": [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]}
+    ]
     response = client.get("/machines", headers=auth_headers)
     assert response.status_code == 200
-    assert response.json() == ["office-pc"]
+    assert response.json() == [
+        {"machine_id": "office-pc", "monitors": [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]}
+    ]
+
+
+def test_screenshot_monitors_returns_cached_value(client: TestClient, auth_headers: dict, registry: Mock) -> None:
+    registry.get_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]
+    response = client.get("/machines/office-pc/screenshot/monitors", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json() == [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}]
+    registry.get_monitors.assert_called_once_with("office-pc")
+
+
+def test_screenshot_monitors_404_when_not_connected(client: TestClient, auth_headers: dict, registry: Mock) -> None:
+    registry.get_monitors.return_value = None
+    response = client.get("/machines/office-pc/screenshot/monitors", headers=auth_headers)
+    assert response.status_code == 404
 
 
 def test_mcp_config_empty_by_default(client: TestClient, auth_headers: dict) -> None:

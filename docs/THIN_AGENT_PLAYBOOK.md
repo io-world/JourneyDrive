@@ -56,11 +56,26 @@ A `false` ack means your credentials are wrong, not that the network hiccuped �
 don't reconnect-and-retry on this; surface it and stop (see §3's
 `RegistrationRejected` pattern).
 
-**Config push**: on a `true` ack, the broker always sends exactly one more text
+**Monitor report**: on a `true` ack, before anything else, the agent sends exactly
+one more text frame — its own monitor layout, from the same source `screenshot_monitors`
+used to provide (real `mss`-detected bounds, not guessed or hardcoded):
+
+```json
+{"type": "monitors", "monitors": [{"index": 0, "left": 0, "top": 0, "width": 1920, "height": 1080}, ...]}
+```
+
+The broker caches this for the life of the connection and serves it from
+`GET /machines` and `GET /machines/{id}/screenshot/monitors` without a live
+round trip — a machine's monitor layout is assumed stable for the life of its
+connection; if it does change, a reconnect (automatic on a dropped connection,
+or a manual restart) re-sends a fresh report. Send this unprompted, right after
+reading the ack, before waiting for anything from the broker.
+
+**Config push**: right after that, the broker always sends exactly one more text
 frame before anything else, unprompted — this agent's pushed operational config:
 
 ```json
-{"type": "config", "screenshot": {"format": "jpeg", "quality": 75, "monitor": 0}, "log_level": "INFO"}
+{"type": "config", "screenshot": {"format": "png", "quality": 75, "monitor": 0}, "log_level": "INFO"}
 ```
 
 Both fields are optional and independent — a broker with nothing configured for
@@ -86,12 +101,13 @@ same connection with either:
 ```
 
 **Method table to implement** (`method` → expected `params` → `result`), taken
-directly from `journeycapture_windows_thinclient/schemas.py`:
+directly from `journeycapture_windows_thinclient/schemas.py`. Monitor layout is
+*not* in this table — it's reported once via the "Monitor report" frame above, not
+a live-queryable method; don't implement a `screenshot_monitors` dispatch handler.
 
 | method | params | result |
 |---|---|---|
 | `health` | `{}` | `{"status": "ok", "version": "<str>"}` |
-| `screenshot_monitors` | `{}` | `[{"index": int, "left": int, "top": int, "width": int, "height": int}, ...]` |
 | `mouse_move` | `{"x": int, "y": int, "relative": bool}` | `{"status": "ok", "x": int, "y": int}` |
 | `mouse_click` | `{"button": "left"\|"right"\|"middle", "action": "click"\|"down"\|"up", "clicks": int, "x": int\|null, "y": int\|null}` | `{"status": "ok"}` |
 | `mouse_scroll` | `{"dx": int, "dy": int}` (wheel notches, not pixels) | `{"status": "ok"}` |
@@ -103,7 +119,7 @@ An unrecognized `method` gets `{"id": ..., "error": {"message": "unknown method:
 back — don't let it hang or drop silently.
 
 **`screenshot` is the one method with a different response shape**: send the JSON
-result frame first (`{"id": ..., "result": {"content_type": "image/jpeg"}}`), then
+result frame first (`{"id": ..., "result": {"content_type": "image/png"}}`), then
 immediately send the raw image bytes as a **binary** websocket frame, no base64. The
 broker holds that request's HTTP caller open and treats the next frame *on that same
 connection* as the image data — which only works because the connection handles one
@@ -180,13 +196,13 @@ as-is — that part has zero OS-specific code in it today and shouldn't grow any
   step, the same way `docs/WINDOWS_SMOKE_TEST.md` documents Windows-only manual
   checks that can't be automated from another OS.
 
-Whatever you pick, `list_monitors`/`screenshot_monitors`'s real
-`width`/`height`/`left`/`top` per monitor must be genuinely accurate — every
-downstream fractional-coordinate (`fx`/`fy`) calculation in `journeycapture_mcp`
-depends on this being correct, and there is no cross-check that catches it being
-subtly wrong (see the resolution-assumption pitfall in §4 of this doc, and
-`CLAUDE.md`'s "Never assume the screen resolution" section for the real incident
-this protects against).
+Whatever you pick, the monitor layout reported in the handshake-time `"monitors"`
+frame (§1) — real `width`/`height`/`left`/`top` per monitor — must be genuinely
+accurate — every downstream fractional-coordinate (`fx`/`fy`) calculation in
+`journeycapture_mcp` depends on this being correct, and there is no cross-check
+that catches it being subtly wrong (see the resolution-assumption pitfall in §4
+of this doc, and `CLAUDE.md`'s "Never assume the screen resolution" section for
+the real incident this protects against).
 
 ## 3. Config and startup discipline to carry over unchanged
 

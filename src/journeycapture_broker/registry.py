@@ -28,6 +28,7 @@ class MachineTimeout(Exception):
 @dataclass
 class _Connection:
     websocket: ServerConnection
+    monitors: list[dict] = field(default_factory=list)
     pending: dict[str, asyncio.Future] = field(default_factory=dict)
     pending_methods: dict[str, str] = field(default_factory=dict)
     # (request_id, metadata) once a screenshot's JSON response has arrived but its
@@ -48,8 +49,8 @@ class ConnectionRegistry:
         self._settings = settings
         self._connections: dict[str, _Connection] = {}
 
-    def register(self, machine_id: str, websocket: ServerConnection) -> None:
-        self._connections[machine_id] = _Connection(websocket=websocket)
+    def register(self, machine_id: str, websocket: ServerConnection, monitors: list[dict] | None = None) -> None:
+        self._connections[machine_id] = _Connection(websocket=websocket, monitors=monitors or [])
         logger.info("machine %s connected", machine_id)
 
     def _current(self, machine_id: str, websocket: ServerConnection) -> _Connection | None:
@@ -71,8 +72,14 @@ class ConnectionRegistry:
                 future.set_exception(MachineNotConnected(f"{machine_id} disconnected mid-request"))
         logger.info("machine %s disconnected", machine_id)
 
-    def connected_machines(self) -> list[str]:
-        return list(self._connections.keys())
+    def connected_machines(self) -> list[dict]:
+        return [{"machine_id": mid, "monitors": conn.monitors} for mid, conn in self._connections.items()]
+
+    def get_monitors(self, machine_id: str) -> list[dict] | None:
+        """Cached monitor layout for one machine, or None if it isn't connected —
+        used by GET /machines/{id}/screenshot/monitors to serve without a live call."""
+        conn = self._connections.get(machine_id)
+        return conn.monitors if conn is not None else None
 
     async def call(self, machine_id: str, method: str, params: dict) -> tuple[dict, bytes | None]:
         """Send a command to machine_id and wait for its response.

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 
 
 class ScreenshotConfig(BaseModel, extra="forbid"):
-    format: Literal["png", "jpeg"] = "jpeg"
+    format: Literal["png", "jpeg"] = "png"
     quality: int = Field(default=75, ge=1, le=100)
     monitor: int = Field(default=0, ge=0)
 

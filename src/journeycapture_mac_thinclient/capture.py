@@ -31,7 +31,7 @@ def list_monitors() -> list[MonitorInfo]:
 
 def take_screenshot(
     monitor: int = 0,
-    format: Literal["png", "jpeg"] = "jpeg",
+    format: Literal["png", "jpeg"] = "png",
     quality: int = 75,
 ) -> tuple[bytes, str]:
     with mss.mss() as sct:

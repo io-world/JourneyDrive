@@ -159,7 +159,10 @@ things stay local, for two different reasons:
   doesn't change, just the allowlist of keys it accepts.
 
 **Thin client**: right after the websocket handshake ack (`{"ok": true}`), the
-broker always sends one more frame — `{"type": "config", ...}` with whatever's in
+thin client sends its monitor layout once (`{"type": "monitors", "monitors": [...]}`
+— real `mss`-detected bounds), which the broker caches for the life of that
+connection (see "Monitor layout is cached, not live-queried" below). The broker
+then always sends one more frame — `{"type": "config", ...}` with whatever's in
 `machine_profiles[machine_id]`, `{"type": "config"}` if there's no profile for that
 machine. The thin client applies it on top of its local config.json (a field the
 push doesn't mention keeps whatever the local value already was), on every
@@ -168,6 +171,17 @@ successful (re)connect, not just the first — see
 `docs/THIN_AGENT_PLAYBOOK.md`'s §1 for the exact wire format, since this is part of
 the protocol contract any new agent needs to implement too, not just this repo's
 own thin client.
+
+**Monitor layout is cached, not live-queried**: `GET /machines` and
+`GET /machines/{id}/screenshot/monitors` both serve from `ConnectionRegistry`'s
+per-connection cache (populated by the monitors frame above), not a live round
+trip to the thin client — this assumes a machine's monitor layout is stable for
+the life of its connection. If it does change (a monitor plugged/unplugged,
+resolution changed), the fix is a reconnect — automatic on a dropped connection
+via the thin client's existing retry loop, or a manual restart — which sends a
+fresh monitors frame and refreshes the cache. This is why the (former)
+`screenshot_monitors` live websocket method was removed — nothing calls it
+anymore now that both HTTP routes read the cache.
 
 **MCP server**: `journeycapture_mcp/__init__.main()` calls `GET /mcp-config` once
 at startup (via `JourneyCaptureClient.get_mcp_config()`) and merges whatever keys
@@ -202,11 +216,14 @@ rotating `journeycapture-broker.log`, same pattern as the other two components.
 
 All routes require `X-API-Key` matching the broker's own `api_key`.
 
-- `GET /machines` — list currently-connected machine ids.
+- `GET /machines` — list currently-connected machines, each as
+  `{"machine_id": ..., "monitors": [...]}` (monitors from the connect-time cache,
+  not a live query).
 - `GET /mcp-config` — the broker's `mcp_profile`, fetched by the MCP server once at
   startup (see "Broker-pushed config" above). `{}` if nothing's configured.
 - `GET /machines/{id}/health`
-- `GET /machines/{id}/screenshot/monitors`
+- `GET /machines/{id}/screenshot/monitors` — same cache as `GET /machines`, scoped
+  to one machine; `404` if it isn't connected.
 - `GET /machines/{id}/screenshot?format=&quality=&monitor=`
 - `POST /machines/{id}/mouse/move`, `/mouse/click`, `/mouse/scroll`
 - `POST /machines/{id}/keyboard/type`, `/keyboard/key`
