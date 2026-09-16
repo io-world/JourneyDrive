@@ -240,7 +240,7 @@ either could be a password.
 `tests/test_mcp_client.py` and `tests/test_mcp_server.py` require the `mcp` extra;
 they call `pytest.importorskip("mcp")` so they're skipped (not failed) when it isn't
 installed — which is the normal state on the Windows build, since
-`scripts/thinclient/build_windows.ps1` only runs a plain `uv sync`. Run
+`scripts/windows_thinclient/build_windows.ps1` only runs a plain `uv sync`. Run
 `uv sync --extra mcp && uv run pytest -q` to include them.
 
 No live broker/machine is needed for these tests — `test_mcp_client.py` mocks the

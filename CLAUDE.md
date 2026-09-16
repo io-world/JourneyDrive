@@ -172,7 +172,7 @@ the identical wire protocol described in that doc's §1.
   journeycapture_mac_thinclient import main; main()`), same reasoning as
   `packaging/run.py`.
 - **`scripts/mac_thinclient/build_mac.sh`** — the one-shot build script, a bash
-  port of `scripts/thinclient/build_windows.ps1`'s steps (installs `uv` if missing,
+  port of `scripts/windows_thinclient/build_windows.ps1`'s steps (installs `uv` if missing,
   syncs deps, runs the test suite, builds a version-named
   `dist/journeycapture-mac-<version>` via PyInstaller, copies
   `examples/config.example.json` → `dist/config.json` if missing). PyInstaller
@@ -281,7 +281,7 @@ and never touches this — only an explicit `down`/`press` schedules a timer. Se
 
 `scripts/` is organized by which component each file's config belongs to —
 `scripts/broker/` (`broker_config.json`, plus `broker_cert.pem`/`broker_key.pem` if
-TLS is on), `scripts/mcp/` (`mcp_config.json`), `scripts/thinclient/`
+TLS is on), `scripts/mcp/` (`mcp_config.json`), `scripts/windows_thinclient/`
 (`thinclient_config.json`, `build_windows.ps1`), `scripts/mac_thinclient/`
 (`mac_thinclient_config.json`, `build_mac.sh`) — with everything else (the live-test
 scripts below, and their own shared config) under `scripts/testing/`. Every file
@@ -324,7 +324,7 @@ correctness, UIPI/elevated-window behavior, Firewall/AV prompts) are in
 
 Must run on real Windows (PyInstaller doesn't cross-compile) — see
 `docs/WINDOWS_BUILD.md` for the full manual walkthrough, or run
-`scripts/thinclient/build_windows.ps1` for the one-shot version (installs `uv` if missing, syncs
+`scripts/windows_thinclient/build_windows.ps1` for the one-shot version (installs `uv` if missing, syncs
 deps, runs the test suite, builds a version-named `dist/journeycapture-<version>.exe`
 via PyInstaller, copies `examples/config.example.json` → `dist/config.json` if missing).
 Same constraint and one-shot pattern for the macOS agent — must run on a real Mac,

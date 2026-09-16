@@ -7,7 +7,7 @@ bounds (`>=`); see `uv.lock` for exact resolved versions.
 
 One runs on the Windows box, the other on a Mac — see `docs/THIN_AGENT_PLAYBOOK.md`
 for why they're separate packages with near-identical internals rather than one
-package branching on `sys.platform`. Both `scripts/thinclient/build_windows.ps1`
+package branching on `sys.platform`. Both `scripts/windows_thinclient/build_windows.ps1`
 and `scripts/mac_thinclient/build_mac.sh`'s plain `uv sync` installs only this
 group — nothing below it — since `mss`/`pynput` are cross-platform libraries and
 neither agent needs the `mcp`/`broker` extras.
@@ -55,7 +55,7 @@ Installed by default whenever `uv sync` runs (with or without `--extra mcp`/`--e
 | `pytest` | The test suite (`tests/`). |
 | `pytest-asyncio` | Enables `async def test_*` functions — needed for `journeycapture_mcp`'s and `journeycapture_broker`'s async tool/client/registry tests. |
 | `httpx` | Also here (not just the `mcp` extra) because `fastapi.testclient.TestClient` is built on it (used by `test_broker_http_api.py` too), and the live-testing `scripts/testing/*.py` use it directly. |
-| `pyinstaller` | Packages `journeycapture_windows_thinclient` into the standalone Windows `.exe` (`scripts/thinclient/build_windows.ps1`, `docs/WINDOWS_BUILD.md`) and `journeycapture_mac_thinclient` into the standalone macOS binary (`scripts/mac_thinclient/build_mac.sh`, `docs/MACOS_BUILD.md`). |
+| `pyinstaller` | Packages `journeycapture_windows_thinclient` into the standalone Windows `.exe` (`scripts/windows_thinclient/build_windows.ps1`, `docs/WINDOWS_BUILD.md`) and `journeycapture_mac_thinclient` into the standalone macOS binary (`scripts/mac_thinclient/build_mac.sh`, `docs/MACOS_BUILD.md`). |
 
 ## Build backend
 
