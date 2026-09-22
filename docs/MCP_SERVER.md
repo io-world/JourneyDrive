@@ -17,7 +17,7 @@ uv sync --extra mcp
 ```
 
 This is a separate step from the plain `uv sync` used for the thin client itself —
-the MCP SDK isn't a dependency of `journeydrive.exe` or its Windows build.
+the MCP SDK isn't a dependency of `journeydrive-win.exe` or its Windows build.
 
 ## Configuration
 

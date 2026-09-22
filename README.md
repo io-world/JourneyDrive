@@ -10,7 +10,7 @@ MCP client  --stdio/HTTP-->  MCP server  --HTTP-->  broker  <--WebSocket--  Wind
                                                             <--WebSocket--  macOS thin client(s)
 ```
 
-- **Windows thin client** (`journeydrive`) — runs on each Windows box, drives the
+- **Windows thin client** (`journeydrive-win`) — runs on each Windows box, drives the
   mouse/keyboard/screenshots there. Connects *out* to the broker; doesn't accept
   inbound connections.
 - **macOS thin client** (`journeydrive-mac`) — the same role for a Mac. Same wire
@@ -85,7 +85,7 @@ config" section for the full design.
 uv sync
 cp examples/config.example.json config.json
 # edit config.json: set broker_host/machine_id/api_key to match the broker's config
-uv run journeydrive      # Windows agent
+uv run journeydrive-win  # Windows agent
 uv run journeydrive-mac  # macOS agent
 ```
 

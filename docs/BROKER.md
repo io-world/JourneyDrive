@@ -1,7 +1,7 @@
 # Broker
 
 `journeydrive-broker` sits between the MCP server and one or more thin clients
-(`journeydrive.exe` on Windows, `journeydrive-mac` on macOS — see
+(`journeydrive-win.exe` on Windows, `journeydrive-mac` on macOS — see
 `docs/THIN_AGENT_PLAYBOOK.md` for adding another OS). It's what makes "one MCP
 server, many machines" possible: each thin client connects *out* to the broker over
 a websocket — it doesn't accept inbound connections at all — so the broker can reach
@@ -11,7 +11,7 @@ the thin client's original REST shape — identically regardless of which OS age
 actually behind a given machine id.
 
 ```
-MCP server  --HTTP-->  broker  <--WebSocket--  thin client (journeydrive.exe, Windows)
+MCP server  --HTTP-->  broker  <--WebSocket--  thin client (journeydrive-win.exe, Windows)
                                 <--WebSocket--  thin client (journeydrive-mac, macOS)
 ```
 

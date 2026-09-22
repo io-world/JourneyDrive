@@ -31,7 +31,7 @@ broker = [
 ]
 
 [project.scripts]
-journeydrive = "journeydrive_windows_thinclient:main"
+journeydrive-win = "journeydrive_windows_thinclient:main"
 journeydrive-mac = "journeydrive_mac_thinclient:main"
 journeydrive-mcp = "journeydrive_mcp:main"
 journeydrive-broker = "journeydrive_broker:main"

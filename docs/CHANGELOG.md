@@ -2,6 +2,23 @@
 
 Notable changes to JourneyDrive, newest first. Commit hashes refer to `main`.
 
+## 2026-09-22 — Rename the Windows thin client's command, exe, and log to `journeydrive-win`
+
+The Windows agent's user-facing names now match the macOS agent's
+`journeydrive-mac` naming, so neither OS is the unqualified default:
+
+- Console script `journeydrive` → `journeydrive-win` (`uv run journeydrive-win`).
+- Built executable `journeydrive-<version>.exe` → `journeydrive-win-<version>.exe`
+  (`scripts/windows_thinclient/build_windows.ps1`, `docs/WINDOWS_BUILD.md`).
+- Default log file `journeydrive.log` → `journeydrive-win.log`
+  (`journeydrive_windows_thinclient.config.Config.log_file`). A `config.json`
+  that explicitly sets `log_file` is unaffected.
+
+Unchanged: the Python package (`journeydrive_windows_thinclient`), the
+distribution/project name (`journeydrive`), and every wire-protocol/config-field
+name. Older entries below still say `journeydrive`/`journeydrive.exe`, since
+those were the names at the time.
+
 ## 2026-09-16 — Fix `preview_click` marker visibility, default to PNG, cache monitor layout
 
 Three related fixes to click-coordination precision, reported after live use of

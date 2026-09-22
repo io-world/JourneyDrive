@@ -41,7 +41,7 @@ MCP client  --stdio/HTTP-->  journeydrive_mcp  --HTTP-->  journeydrive_broker  <
 uv sync                    # install deps for both thin clients (creates .venv)
 uv sync --extra broker     # also install deps for the broker (controller-side only)
 uv sync --extra mcp        # also install deps for the MCP server (controller-side only)
-uv run journeydrive      # run the Windows thin client from source (needs config.json - see below)
+uv run journeydrive-win  # run the Windows thin client from source (needs config.json - see below)
 uv run journeydrive-mac  # run the macOS thin client from source (needs config.json - see below)
 uv run journeydrive-broker --config broker_config.json  # run the broker
 uv run journeydrive-mcp --config scripts/mcp/mcp_config.json  # run the MCP server
@@ -325,7 +325,7 @@ correctness, UIPI/elevated-window behavior, Firewall/AV prompts) are in
 Must run on real Windows (PyInstaller doesn't cross-compile) — see
 `docs/WINDOWS_BUILD.md` for the full manual walkthrough, or run
 `scripts/windows_thinclient/build_windows.ps1` for the one-shot version (installs `uv` if missing, syncs
-deps, runs the test suite, builds a version-named `dist/journeydrive-<version>.exe`
+deps, runs the test suite, builds a version-named `dist/journeydrive-win-<version>.exe`
 via PyInstaller, copies `examples/config.example.json` → `dist/config.json` if missing).
 Same constraint and one-shot pattern for the macOS agent — must run on a real Mac,
 see `docs/MACOS_BUILD.md` and `scripts/mac_thinclient/build_mac.sh`.
@@ -431,7 +431,7 @@ Lives in `src/journeydrive_mcp/`. Its dependencies (`mcp`, `httpx`) sit under th
   deliberately separate names to avoid confusing "the broker" with "this server")
   plus the (off-by-default) local screenshot-saving toggle (`save_screenshots`/
   `screenshot_dir`/`max_saved_screenshots`, the last defaulting to 100 — a count-based
-  cap, pruned oldest-first after each save, matching how `journeydrive.log`/
+  cap, pruned oldest-first after each save, matching how `journeydrive-win.log`/
   `journeydrive-mcp.log` both rotate rather than growing forever; 0 or negative
   disables pruning). Fails fast with a clear stderr message if broker_host/
   broker_api_key are missing either way (mirrors

@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File scripts\thinclient\build_windows.ps1
 
 This does everything through step 6 below in one command: installs `uv` if it's
 missing, runs `uv sync`, runs the test suite (`uv run pytest -q`, aborting the build on
-failure — pass `-SkipTests` to bypass), builds `dist\journeydrive-<version>.exe` with
+failure — pass `-SkipTests` to bypass), builds `dist\journeydrive-win-<version>.exe` with
 PyInstaller (version read straight from `pyproject.toml`'s `[project].version` via
 Python's `tomllib`, so the exe name always matches the source file even if `uv sync`
 hasn't reinstalled since a version bump), and copies `examples\config.example.json` →
@@ -78,14 +78,14 @@ expected on Windows, not a problem.
 ## 5. Build the executable (manual)
 
 ```powershell
-uv run pyinstaller --onefile --console --name journeydrive packaging/run.py
+uv run pyinstaller --onefile --console --name journeydrive-win packaging/run.py
 ```
 
 - `--console` (not `--windowed`) is intentional for the first build, so stdout/stderr
   are visible if something goes wrong at startup. Switch to `--windowed` later once
-  file logging (`journeydrive.log`) has been proven sufficient on its own.
-- This produces `dist\journeydrive.exe`, plus a `build\` scratch directory and a
-  generated `journeydrive.spec` in the repo root — both are gitignored/disposable.
+  file logging (`journeydrive-win.log`) has been proven sufficient on its own.
+- This produces `dist\journeydrive-win.exe`, plus a `build\` scratch directory and a
+  generated `journeydrive-win.spec` in the repo root — both are gitignored/disposable.
 - If mouse/keyboard control or screenshots fail with an import error at runtime,
   `pynput` ships its own PyInstaller hook and should Just Work; `mss` needs no special
   hook (pure `ctypes` against `user32`/`gdi32`). Otherwise add the missing module
@@ -113,19 +113,19 @@ the system.
 
 ```powershell
 cd dist
-.\journeydrive-<version>.exe
+.\journeydrive-win-<version>.exe
 ```
 
 This machine only ever connects *out* to the broker (a websocket client, not a
 listening server), so there's no inbound Firewall prompt to expect anymore — confirm
-it instead by checking `journeydrive.log` next to the exe for a successful broker
+it instead by checking `journeydrive-win.log` next to the exe for a successful broker
 connection, and `GET /machines` on the broker's HTTP API for this `machine_id`
 showing up as connected.
 
 ## 8. Publish a release (optional)
 
 ```powershell
-gh release create v<version> "dist\journeydrive-<version>.exe" --title v<version> --notes "..."
+gh release create v<version> "dist\journeydrive-win-<version>.exe" --title v<version> --notes "..."
 ```
 
 **Remember to rebuild and publish a new release after any change to

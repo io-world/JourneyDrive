@@ -24,7 +24,7 @@ class Config(BaseModel, extra="forbid"):
     broker_cert_fingerprint: str | None = Field(default=None, description="SHA-256 fingerprint (hex, colons optional) of the broker's TLS certificate. Required when broker_tls is true.")
     screenshot: ScreenshotConfig = Field(default_factory=ScreenshotConfig)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    log_file: str = "journeydrive.log"
+    log_file: str = "journeydrive-win.log"
 
     @model_validator(mode="after")
     def _check_tls_fingerprint_pair(self) -> "Config":
