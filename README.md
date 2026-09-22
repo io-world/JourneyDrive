@@ -31,14 +31,45 @@ thin client(s), then the MCP server.
 
 Sits between the MCP server and every thin client.
 
+**First-time setup** (once):
+
 ```
 uv sync --extra broker
-cp examples/config.broker.example.json broker_config.json
-# edit broker_config.json: set api_key and a machine_id/api_key pair per thin client
-uv run journeydrive-broker --config broker_config.json
+mkdir -p scripts/broker
+cp examples/config.broker.example.json scripts/broker/broker_config.json
+```
+
+Then edit `scripts/broker/broker_config.json`:
+
+- `api_key` — a secret the MCP server will use to talk to the broker. Make one up,
+  or generate one (see [Generating API keys](#generating-api-keys) below).
+- `machines` — one `"machine_id": "api_key"` entry per thin client. The
+  `machine_id` is any name you choose (e.g. `"office-pc"`), and each machine gets
+  its own separate secret. The same pair goes into that thin client's own config.
+
+**Run it:**
+
+```
+uv run journeydrive-broker --config scripts/broker/broker_config.json
 ```
 
 See [docs/BROKER.md](docs/BROKER.md) for the HTTP API and how routing works.
+
+### Generating API keys
+
+Any long random string works. To generate one:
+
+```
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Run it once for the broker's `api_key` and once per machine. You'll end up with
+the same keys in two places each:
+
+| Key | Set in the broker's config | Also set in |
+|---|---|---|
+| Broker key | `api_key` | the MCP server's `broker_api_key` |
+| Each machine's key | `machines` → `"<machine_id>": "<key>"` | that thin client's `machine_id` + `api_key` |
 
 ### TLS (optional)
 
@@ -48,13 +79,15 @@ network you don't fully trust:
 
 ```
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-  -keyout broker_key.pem -out broker_cert.pem \
+  -keyout scripts/broker/broker_key.pem -out scripts/broker/broker_cert.pem \
   -subj "/CN=journeydrive-broker" \
   -addext "subjectAltName=IP:<broker's real LAN IP>"
-openssl x509 -in broker_cert.pem -noout -fingerprint -sha256
+openssl x509 -in scripts/broker/broker_cert.pem -noout -fingerprint -sha256
 ```
 
-Set `tls_cert_file`/`tls_key_file` in `broker_config.json` to those two paths, then
+Set `tls_cert_file`/`tls_key_file` in `scripts/broker/broker_config.json` to
+`"scripts/broker/broker_cert.pem"`/`"scripts/broker/broker_key.pem"` (paths are
+relative to the repo root, where you run the broker from), then
 give every client (thin client's `broker_tls`+`broker_cert_fingerprint`, MCP
 server's `broker_scheme: "https"`+`broker_cert_fingerprint`, or
 `scripts/testing/*.py --broker-scheme https --broker-cert-fingerprint ...`) the fingerprint
@@ -69,7 +102,7 @@ of hand-editing every thin client / the MCP server's own local copy — the more
 that lives in one place, the less there is to keep in sync across machines. Add
 `machine_profiles` (per-`machine_id`: `screenshot`/`log_level`) and/or
 `mcp_profile` (`save_screenshots`/`screenshot_dir`/`max_saved_screenshots`/
-`timeout`) to `broker_config.json` and it's pushed to clients automatically (thin
+`timeout`) to `scripts/broker/broker_config.json` and it's pushed to clients automatically (thin
 clients on every connect, the MCP server once at startup). A client's own local
 config is the fallback, not the primary source: a field a profile doesn't mention
 keeps whatever the client's local value already was, and a broker that's briefly
@@ -107,12 +140,29 @@ scripted). Manual verification checklist:
 
 ## MCP server
 
+**First-time setup** (once):
+
 ```
 uv sync --extra mcp
+mkdir -p scripts/mcp
+cp examples/config.mcp.example.json scripts/mcp/mcp_config.json
+```
+
+Then edit `scripts/mcp/mcp_config.json`:
+
+- `broker_api_key` — the broker's own `api_key` from
+  `scripts/broker/broker_config.json` (not any machine's key).
+- `broker_host` — leave as `127.0.0.1` if the broker runs on this same machine,
+  otherwise the broker's IP.
+
+**Run it:**
+
+```
 uv run journeydrive-mcp --config scripts/mcp/mcp_config.json
 ```
 
-See [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for configuration options, the `machine`
+Then point your MCP client at `http://127.0.0.1:8000/mcp`. See
+[docs/MCP_SERVER.md](docs/MCP_SERVER.md) for configuration options, the `machine`
 parameter every tool takes, and wiring it into an MCP client.
 
 ## Adding a new agent for another OS

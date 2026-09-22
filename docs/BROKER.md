@@ -98,17 +98,17 @@ unchanged.
 
 ```
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-  -keyout broker_key.pem -out broker_cert.pem \
+  -keyout scripts/broker/broker_key.pem -out scripts/broker/broker_cert.pem \
   -subj "/CN=journeydrive-broker" \
   -addext "subjectAltName=IP:192.168.1.10"
 
-openssl x509 -in broker_cert.pem -noout -fingerprint -sha256
+openssl x509 -in scripts/broker/broker_cert.pem -noout -fingerprint -sha256
 ```
 
 Replace `192.168.1.10` with the broker's real LAN IP. The 10-year validity is
 deliberate — there's no automated renewal here, and trust comes entirely from the
 pinned fingerprint on each client, not from certificate expiry. `broker_cert.pem`/
-`broker_key.pem` should live next to `broker_config.json` (already gitignored — the
+`broker_key.pem` should live next to `broker_config.json` in `scripts/broker/` (already gitignored — the
 private key must never be committed) rather than in `examples/`.
 
 Set `tls_cert_file`/`tls_key_file` in `broker_config.json` to those two paths and
@@ -205,7 +205,7 @@ no third place it could be.
 ## Running it
 
 ```
-uv run journeydrive-broker --config broker_config.json
+uv run journeydrive-broker --config scripts/broker/broker_config.json
 ```
 
 Runs the HTTP API and the websocket server concurrently in one process

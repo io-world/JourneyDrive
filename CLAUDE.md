@@ -43,7 +43,7 @@ uv sync --extra broker     # also install deps for the broker (controller-side o
 uv sync --extra mcp        # also install deps for the MCP server (controller-side only)
 uv run journeydrive-win  # run the Windows thin client from source (needs config.json - see below)
 uv run journeydrive-mac  # run the macOS thin client from source (needs config.json - see below)
-uv run journeydrive-broker --config broker_config.json  # run the broker
+uv run journeydrive-broker --config scripts/broker/broker_config.json  # run the broker
 uv run journeydrive-mcp --config scripts/mcp/mcp_config.json  # run the MCP server
 uv run pytest -q           # run the full test suite
 uv run pytest tests/test_config.py::test_valid_config_parses_with_defaults  # run a single test
@@ -55,9 +55,12 @@ Config path resolution order: `--config PATH` CLI arg → `JOURNEYDRIVE_CONFIG` 
 var → `config.json` next to the executable (or CWD when run from source). Refuses to
 start on a missing/invalid config (see `journeydrive_windows_thinclient.config.load_config`).
 
-Broker config: copy `examples/config.broker.example.json`, set its own `api_key` (what the MCP
-server authenticates with) and a `machines` map of `machine_id: api_key` pairs — see
-`docs/BROKER.md`.
+Broker config: copy `examples/config.broker.example.json` to `scripts/broker/broker_config.json`,
+set its own `api_key` (what the MCP server authenticates with) and a `machines` map of
+`machine_id: api_key` pairs — see `docs/BROKER.md`.
+
+MCP server config: copy `examples/config.mcp.example.json` to `scripts/mcp/mcp_config.json`,
+set `broker_api_key` to the broker's own `api_key` — see `docs/MCP_SERVER.md`.
 
 There is no lint/format command configured in this repo.
 
