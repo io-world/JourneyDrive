@@ -26,7 +26,7 @@ missing, runs `uv sync`, runs the test suite (`uv run pytest -q`, aborting the b
 failure — pass `-SkipTests` to bypass), builds `dist\journeydrive-win-<version>.exe` with
 PyInstaller (version read straight from `pyproject.toml`'s `[project].version` via
 Python's `tomllib`, so the exe name always matches the source file even if `uv sync`
-hasn't reinstalled since a version bump), and copies `examples\config.example.json` →
+hasn't reinstalled since a version bump), and copies `examples\config.win_thinclient.example.json` →
 `dist\config.json` if one isn't already there. Pass `-OpenDist` to have it open
 `dist\` in Explorer when done.
 
@@ -97,7 +97,7 @@ uv run pyinstaller --onefile --console --name journeydrive-win packaging/run.py
 do it by hand:
 
 ```powershell
-Copy-Item examples\config.example.json dist\config.json
+Copy-Item examples\config.win_thinclient.example.json dist\config.json
 notepad dist\config.json
 ```
 

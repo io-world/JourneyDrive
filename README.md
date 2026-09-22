@@ -116,16 +116,20 @@ config" section for the full design.
 
 ```
 uv sync
-cp examples/config.example.json config.json
-# edit config.json: set broker_host/machine_id/api_key to match the broker's config
-uv run journeydrive-win  # Windows agent
-uv run journeydrive-mac  # macOS agent
+
+# Windows
+cp examples/config.win_thinclient.example.json config.json
+uv run journeydrive-win
+
+# macOS
+cp examples/config.mac_thinclient.example.json config.json
+uv run journeydrive-mac
 ```
 
-Same config shape for both — `broker_host`/`machine_id`/`api_key` just need to match
-an entry in the broker's own config. Config is loaded from (in order): `--config
-PATH`, the `JOURNEYDRIVE_CONFIG` env var, or `config.json` next to the
-executable/CWD.
+Before running, edit `config.json`: set `broker_host` to the broker's IP, and
+`machine_id`/`api_key` to match that machine's entry in the broker's `machines`
+config. Config is loaded from (in order): `--config PATH`, the
+`JOURNEYDRIVE_CONFIG` env var, or `config.json` next to the executable/CWD.
 
 ## Building the standalone executables
 

@@ -39,7 +39,7 @@ These require a real macOS desktop session and cannot be automated from another 
 1. Confirm both permission grants from `docs/MACOS_BUILD.md` step 1 (System
    Settings → Privacy & Security → Accessibility, and → Screen Recording) are in
    place for whatever process is running the agent.
-2. Copy `examples/config.example.json` to `config.json` next to
+2. Copy `examples/config.mac_thinclient.example.json` to `config.json` next to
    `journeydrive-mac-<version>`, set `broker_host`/`broker_port` to the broker,
    and set `machine_id`/`api_key` to match an entry in the broker's own `machines`
    config.

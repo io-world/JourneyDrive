@@ -34,7 +34,7 @@ AV flags on first launch — those still need the manual checks below.
 
 These require a real Windows desktop session and cannot be automated from macOS.
 
-1. Copy `examples/config.example.json` to `config.json` next to `journeydrive-win.exe`, set
+1. Copy `examples/config.win_thinclient.example.json` to `config.json` next to `journeydrive-win.exe`, set
    `broker_host`/`broker_port` to the broker, and set `machine_id`/`api_key` to match
    an entry in the broker's own `machines` config.
 2. Launch `journeydrive-win.exe`. Confirm `journeydrive-win.log` shows a successful

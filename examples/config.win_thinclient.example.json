@@ -1,0 +1,14 @@
+{
+  "broker_host": "192.168.1.10",
+  "broker_port": 8601,
+  "machine_id": "replace-with-a-unique-machine-name",
+  "api_key": "replace-with-a-long-random-secret",
+  "broker_tls": false,
+  "broker_cert_fingerprint": "replace-with-the-broker-certificate's-sha256-fingerprint-if-broker_tls-is-true",
+  "screenshot": {
+    "format": "png",
+    "quality": 75,
+    "monitor": 0
+  },
+  "log_level": "INFO"
+}

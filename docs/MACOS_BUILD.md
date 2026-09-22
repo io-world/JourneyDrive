@@ -50,7 +50,7 @@ This does everything through step 6 below in one command: installs `uv` if it's
 missing, runs `uv sync`, runs the test suite (`uv run pytest -q`, aborting the build
 on failure — pass `--skip-tests` to bypass), builds
 `dist/journeydrive-mac-<version>` with PyInstaller (version read straight from
-`pyproject.toml`'s `[project].version`), and copies `examples/config.example.json` →
+`pyproject.toml`'s `[project].version`), and copies `examples/config.mac_thinclient.example.json` →
 `dist/config.json` if one isn't already there. Pass `--open-dist` to have it open
 `dist/` in Finder when done.
 
@@ -96,7 +96,7 @@ screenshots fail with an import error at runtime, add the missing module with
 it by hand:
 
 ```bash
-cp examples/config.example.json dist/config.json
+cp examples/config.mac_thinclient.example.json dist/config.json
 open -e dist/config.json
 ```
 

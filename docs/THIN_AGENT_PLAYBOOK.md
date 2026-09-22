@@ -212,8 +212,9 @@ These aren't OS-specific and there's no reason a new agent should relax any of t
   field — see `journeydrive_windows_thinclient/config.py`'s `Config` model
   (`extra="forbid"`, `api_key` minimum length 16, `x`/`y` must be given together)
   for the exact validation shape to match; a new agent's config should require the
-  same fields (`broker_host`, `broker_port`, `machine_id`, `api_key`) so
-  `examples/config.example.json` stays a valid template for it too.
+  same fields (`broker_host`, `broker_port`, `machine_id`, `api_key`), and ship
+  its own `examples/config.<os>_thinclient.example.json` template alongside the
+  Windows and Mac ones.
 - `RegistrationRejected` (bad credentials) and `BrokerUnreachable` (never connected)
   are distinct failure modes with distinct exit behavior — both should exit
   non-zero with a clear stderr message, never exit 0 the way a normal shutdown

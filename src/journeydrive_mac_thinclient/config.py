@@ -65,7 +65,7 @@ def load_config(path: Path) -> Config:
     if not path.is_file():
         raise ConfigError(
             f"Config file not found: {path}\n"
-            "Copy examples/config.example.json to config.json next to the executable, "
+            "Copy examples/config.mac_thinclient.example.json to config.json next to the executable, "
             "set broker_host/machine_id/api_key to match the broker's config before running."
         )
     try:

@@ -2,6 +2,17 @@
 
 Notable changes to JourneyDrive, newest first. Commit hashes refer to `main`.
 
+## 2026-09-22 — Split the thin client example config per OS; add an MCP example config
+
+`examples/` now has one template per component, each named for what it
+configures: `config.broker.example.json`, `config.mcp.example.json` (new — the
+MCP server previously had no template), `config.win_thinclient.example.json`
+(renamed from `config.example.json`), and `config.mac_thinclient.example.json`
+(new, same fields). `build_windows.ps1`/`build_mac.sh` each copy their own OS's
+template to `dist/config.json`, so a built executable's bundled config is
+unchanged. README setup for the broker and MCP server now uses the
+`scripts/broker/`/`scripts/mcp/` config locations.
+
 ## 2026-09-22 — Rename the Windows thin client's command, exe, and log to `journeydrive-win`
 
 The Windows agent's user-facing names now match the macOS agent's

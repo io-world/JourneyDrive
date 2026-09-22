@@ -67,8 +67,8 @@ ok "Build complete: $ROOT/dist/$BIN_NAME"
 # -- 5. Copy config if missing --------------------------------------------------------
 CFG="$ROOT/dist/config.json"
 if [ ! -f "$CFG" ]; then
-    step "Copying examples/config.example.json -> dist/config.json"
-    cp "$ROOT/examples/config.example.json" "$CFG"
+    step "Copying examples/config.mac_thinclient.example.json -> dist/config.json"
+    cp "$ROOT/examples/config.mac_thinclient.example.json" "$CFG"
     echo "    Edit dist/config.json and set a real broker_host/machine_id/api_key before running."
 else
     ok "dist/config.json already exists - skipping copy."

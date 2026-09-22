@@ -49,7 +49,8 @@ uv run pytest -q           # run the full test suite
 uv run pytest tests/test_config.py::test_valid_config_parses_with_defaults  # run a single test
 ```
 
-Thin client config: copy `examples/config.example.json` to `config.json`, set `broker_host`/
+Thin client config: copy `examples/config.win_thinclient.example.json` (or
+`examples/config.mac_thinclient.example.json`) to `config.json`, set `broker_host`/
 `machine_id`/`api_key` to match an entry in the broker's own `machines` config.
 Config path resolution order: `--config PATH` CLI arg → `JOURNEYDRIVE_CONFIG` env
 var → `config.json` next to the executable (or CWD when run from source). Refuses to
@@ -178,7 +179,7 @@ the identical wire protocol described in that doc's §1.
   port of `scripts/windows_thinclient/build_windows.ps1`'s steps (installs `uv` if missing,
   syncs deps, runs the test suite, builds a version-named
   `dist/journeydrive-mac-<version>` via PyInstaller, copies
-  `examples/config.example.json` → `dist/config.json` if missing). PyInstaller
+  `examples/config.mac_thinclient.example.json` → `dist/config.json` if missing). PyInstaller
   doesn't cross-compile, so this must run on a real Mac, same constraint as the
   Windows build.
 - Tests: `tests/test_mac_config.py`, `tests/test_mac_input_control.py`,
@@ -329,7 +330,7 @@ Must run on real Windows (PyInstaller doesn't cross-compile) — see
 `docs/WINDOWS_BUILD.md` for the full manual walkthrough, or run
 `scripts/windows_thinclient/build_windows.ps1` for the one-shot version (installs `uv` if missing, syncs
 deps, runs the test suite, builds a version-named `dist/journeydrive-win-<version>.exe`
-via PyInstaller, copies `examples/config.example.json` → `dist/config.json` if missing).
+via PyInstaller, copies `examples/config.win_thinclient.example.json` → `dist/config.json` if missing).
 Same constraint and one-shot pattern for the macOS agent — must run on a real Mac,
 see `docs/MACOS_BUILD.md` and `scripts/mac_thinclient/build_mac.sh`.
 
