@@ -4,7 +4,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
-def configure_logging(log_file: str = "journeycapture-broker.log", log_level: str = "INFO") -> None:
+def configure_logging(log_file: str = "journeydrive-broker.log", log_level: str = "INFO") -> None:
     root = logging.getLogger()
     root.setLevel(log_level)
 

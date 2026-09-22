@@ -10,15 +10,15 @@ from mcp.server.mcpserver import Image, MCPServer
 from PIL import Image as PILImage
 from PIL import ImageDraw
 
-from journeycapture_mcp.client import JourneyCaptureClient
-from journeycapture_mcp.config import Settings
+from journeydrive_mcp.client import JourneyDriveClient
+from journeydrive_mcp.config import Settings
 
 logger = logging.getLogger(__name__)
 
 
-def build_server(client: JourneyCaptureClient, settings: Settings) -> MCPServer:
+def build_server(client: JourneyDriveClient, settings: Settings) -> MCPServer:
     server = MCPServer(
-        name="journeycapture",
+        name="journeydrive",
         instructions="Remote-control Windows desktops through a broker that can reach multiple machines. Call "
         "list_machines first to see what's available, then pass that machine id to every other tool. Call "
         "health_check if unsure a specific machine is reachable. Before click_mouse on a small or ambiguous "

@@ -12,15 +12,15 @@ from websockets.asyncio.client import ClientConnection
 from websockets.asyncio.client import process_exception as _default_process_exception
 
 # tls_pinning is pure-stdlib TLS/certificate-fingerprint logic with no OS-specific
-# code — reused directly from journeycapture_windows_thinclient rather than
-# duplicated, the same way journeycapture_mcp.client already does, so a future fix
+# code — reused directly from journeydrive_windows_thinclient rather than
+# duplicated, the same way journeydrive_mcp.client already does, so a future fix
 # to the pinning logic doesn't need to be applied twice.
-from journeycapture_windows_thinclient import tls_pinning
-from journeycapture_windows_thinclient.tls_pinning import CertificateFingerprintMismatch  # noqa: F401
+from journeydrive_windows_thinclient import tls_pinning
+from journeydrive_windows_thinclient.tls_pinning import CertificateFingerprintMismatch  # noqa: F401
 
-from journeycapture_mac_thinclient import capture, input_control
-from journeycapture_mac_thinclient.config import Config, ScreenshotConfig
-from journeycapture_mac_thinclient.schemas import (
+from journeydrive_mac_thinclient import capture, input_control
+from journeydrive_mac_thinclient.config import Config, ScreenshotConfig
+from journeydrive_mac_thinclient.schemas import (
     ClipboardSetRequest,
     KeyboardKeyRequest,
     KeyboardTypeRequest,
@@ -32,7 +32,7 @@ from journeycapture_mac_thinclient.schemas import (
 logger = logging.getLogger(__name__)
 
 try:
-    _VERSION = version("journeycapture")
+    _VERSION = version("journeydrive")
 except PackageNotFoundError:
     _VERSION = "0.0.0"
 

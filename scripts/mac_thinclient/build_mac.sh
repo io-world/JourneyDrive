@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot macOS build script for journeycapture-mac.
+# One-shot macOS build script for journeydrive-mac.
 #
 # Usage:
 #   scripts/mac_thinclient/build_mac.sh [--skip-tests] [--open-dist]
@@ -56,7 +56,7 @@ fi
 # version bump.
 VERSION="$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
 [ -n "$VERSION" ] || fail "Could not read package version."
-BIN_NAME="journeycapture-mac-$VERSION"
+BIN_NAME="journeydrive-mac-$VERSION"
 step "Building dist/$BIN_NAME (PyInstaller)"
 # Remove stale spec so PyInstaller always uses our explicit flags.
 rm -f "$ROOT/build/$BIN_NAME.spec"

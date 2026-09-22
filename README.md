@@ -1,4 +1,4 @@
-# JourneyCapture
+# JourneyDrive
 
 Lets an MCP-aware AI assistant see and drive a real Windows or Mac desktop — take
 screenshots, move the mouse, click, and type — the same way a human would, so it can
@@ -10,15 +10,15 @@ MCP client  --stdio/HTTP-->  MCP server  --HTTP-->  broker  <--WebSocket--  Wind
                                                             <--WebSocket--  macOS thin client(s)
 ```
 
-- **Windows thin client** (`journeycapture`) — runs on each Windows box, drives the
+- **Windows thin client** (`journeydrive`) — runs on each Windows box, drives the
   mouse/keyboard/screenshots there. Connects *out* to the broker; doesn't accept
   inbound connections.
-- **macOS thin client** (`journeycapture-mac`) — the same role for a Mac. Same wire
+- **macOS thin client** (`journeydrive-mac`) — the same role for a Mac. Same wire
   protocol, same broker, addressed independently by its own `machine_id`.
-- **Broker** (`journeycapture-broker`) — routes requests to whichever machine they're
+- **Broker** (`journeydrive-broker`) — routes requests to whichever machine they're
   addressed to, regardless of which OS agent is behind that id. One broker can relay
   to many thin clients at once.
-- **MCP server** (`journeycapture-mcp`) — exposes the broker's API as MCP tools for
+- **MCP server** (`journeydrive-mcp`) — exposes the broker's API as MCP tools for
   an MCP-aware assistant.
 
 Each runs on its own machine (thin clients: the Windows/Mac box; broker and MCP
@@ -35,7 +35,7 @@ Sits between the MCP server and every thin client.
 uv sync --extra broker
 cp examples/config.broker.example.json broker_config.json
 # edit broker_config.json: set api_key and a machine_id/api_key pair per thin client
-uv run journeycapture-broker --config broker_config.json
+uv run journeydrive-broker --config broker_config.json
 ```
 
 See [docs/BROKER.md](docs/BROKER.md) for the HTTP API and how routing works.
@@ -49,7 +49,7 @@ network you don't fully trust:
 ```
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
   -keyout broker_key.pem -out broker_cert.pem \
-  -subj "/CN=journeycapture-broker" \
+  -subj "/CN=journeydrive-broker" \
   -addext "subjectAltName=IP:<broker's real LAN IP>"
 openssl x509 -in broker_cert.pem -noout -fingerprint -sha256
 ```
@@ -85,13 +85,13 @@ config" section for the full design.
 uv sync
 cp examples/config.example.json config.json
 # edit config.json: set broker_host/machine_id/api_key to match the broker's config
-uv run journeycapture      # Windows agent
-uv run journeycapture-mac  # macOS agent
+uv run journeydrive      # Windows agent
+uv run journeydrive-mac  # macOS agent
 ```
 
 Same config shape for both — `broker_host`/`machine_id`/`api_key` just need to match
 an entry in the broker's own config. Config is loaded from (in order): `--config
-PATH`, the `JOURNEYCAPTURE_CONFIG` env var, or `config.json` next to the
+PATH`, the `JOURNEYDRIVE_CONFIG` env var, or `config.json` next to the
 executable/CWD.
 
 ## Building the standalone executables
@@ -109,7 +109,7 @@ scripted). Manual verification checklist:
 
 ```
 uv sync --extra mcp
-uv run journeycapture-mcp --config scripts/mcp/mcp_config.json
+uv run journeydrive-mcp --config scripts/mcp/mcp_config.json
 ```
 
 See [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for configuration options, the `machine`
@@ -119,7 +119,7 @@ parameter every tool takes, and wiring it into an MCP client.
 
 The broker doesn't care what OS or language an agent is written in — only that it
 speaks its WebSocket protocol and always connects *out* to the broker, never the
-reverse. `journeycapture_mac_thinclient` is a worked example of this: a second,
+reverse. `journeydrive_mac_thinclient` is a worked example of this: a second,
 independent agent added with zero changes to the broker or MCP server. See
 [docs/THIN_AGENT_PLAYBOOK.md](docs/THIN_AGENT_PLAYBOOK.md) for the exact wire
 protocol and the recipe for writing a Linux/other agent the same way.

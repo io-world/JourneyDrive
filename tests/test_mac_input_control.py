@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from journeycapture_mac_thinclient import input_control
+from journeydrive_mac_thinclient import input_control
 
 
 @pytest.fixture(autouse=True)
@@ -61,18 +61,18 @@ def test_keyboard_tap_does_not_schedule_auto_release(mocked_controllers):
 
 
 def test_get_clipboard_returns_pasted_text():
-    with patch("journeycapture_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
+    with patch("journeydrive_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
         mock_pyperclip.paste.return_value = "hello"
         assert input_control.get_clipboard() == "hello"
 
 
 def test_get_clipboard_returns_empty_string_for_none():
-    with patch("journeycapture_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
+    with patch("journeydrive_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
         mock_pyperclip.paste.return_value = None
         assert input_control.get_clipboard() == ""
 
 
 def test_set_clipboard_copies_text():
-    with patch("journeycapture_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
+    with patch("journeydrive_mac_thinclient.input_control.pyperclip") as mock_pyperclip:
         input_control.set_clipboard("hello")
         mock_pyperclip.copy.assert_called_once_with("hello")

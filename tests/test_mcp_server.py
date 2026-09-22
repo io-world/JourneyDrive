@@ -13,8 +13,8 @@ pytest.importorskip("mcp")  # controller-side-only extra; not installed for the 
 
 from mcp.server.mcpserver.exceptions import ToolError
 
-from journeycapture_mcp.config import Settings
-from journeycapture_mcp.server import build_server
+from journeydrive_mcp.config import Settings
+from journeydrive_mcp.server import build_server
 
 MACHINE = "office-pc"
 
@@ -83,7 +83,7 @@ async def test_type_text_passes_through_text(server, client: AsyncMock) -> None:
 async def test_type_text_logs_length_not_text(server, client: AsyncMock, caplog) -> None:
     secret = "s3cr3t-password"
     client.type_text.return_value = {"status": "ok", "length": len(secret)}
-    with caplog.at_level(logging.INFO, logger="journeycapture_mcp.server"):
+    with caplog.at_level(logging.INFO, logger="journeydrive_mcp.server"):
         await server.call_tool("type_text", {"machine": MACHINE, "text": secret})
     assert secret not in caplog.text
     assert f"{len(secret)} character" in caplog.text
@@ -92,7 +92,7 @@ async def test_type_text_logs_length_not_text(server, client: AsyncMock, caplog)
 @pytest.mark.asyncio
 async def test_click_mouse_logs_call(server, client: AsyncMock, caplog) -> None:
     client.click_mouse.return_value = {"status": "ok"}
-    with caplog.at_level(logging.INFO, logger="journeycapture_mcp.server"):
+    with caplog.at_level(logging.INFO, logger="journeydrive_mcp.server"):
         await server.call_tool("click_mouse", {"machine": MACHINE, "clicks": 2, "x": 100, "y": 200})
     assert "click_mouse" in caplog.text
     assert "clicks=2" in caplog.text
@@ -286,7 +286,7 @@ async def test_preview_click_uses_same_monitor_for_resolve_and_capture(server, c
 async def test_preview_click_logs_call(server, client: AsyncMock, caplog) -> None:
     client.list_monitors.return_value = [{"index": 0, "left": 0, "top": 0, "width": 200, "height": 100}]
     client.screenshot.return_value = (_fake_screenshot_bytes(200, 100), "image/jpeg")
-    with caplog.at_level(logging.INFO, logger="journeycapture_mcp.server"):
+    with caplog.at_level(logging.INFO, logger="journeydrive_mcp.server"):
         await server.call_tool("preview_click", {"machine": MACHINE, "fx": 0.5, "fy": 0.5})
     assert "preview_click" in caplog.text
 
@@ -407,7 +407,7 @@ async def test_set_clipboard_calls_client(server, client: AsyncMock) -> None:
 async def test_set_clipboard_logs_length_not_text(server, client: AsyncMock, caplog) -> None:
     secret = "s3cr3t-clipboard-content"
     client.set_clipboard.return_value = {"status": "ok"}
-    with caplog.at_level(logging.INFO, logger="journeycapture_mcp.server"):
+    with caplog.at_level(logging.INFO, logger="journeydrive_mcp.server"):
         await server.call_tool("set_clipboard", {"machine": MACHINE, "text": secret})
     assert secret not in caplog.text
     assert f"{len(secret)} character" in caplog.text

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from journeycapture_windows_thinclient.config import ScreenshotConfig
+from journeydrive_windows_thinclient.config import ScreenshotConfig
 
 
 class ConfigError(Exception):
@@ -18,7 +18,7 @@ class ConfigError(Exception):
 _VALID_MCP_PROFILE_KEYS = {"save_screenshots", "screenshot_dir", "max_saved_screenshots", "timeout"}
 
 
-_MIN_KEY_LENGTH = 16  # matches journeycapture_windows_thinclient.config.Config.api_key's min_length
+_MIN_KEY_LENGTH = 16  # matches journeydrive_windows_thinclient.config.Config.api_key's min_length
 
 
 def _validate_key_lengths(api_key: str, machines: dict[str, str]) -> None:
@@ -153,52 +153,52 @@ def _load_settings_from_file(path: Path) -> Settings:
 
 
 def _load_settings_from_env() -> Settings:
-    api_key = os.environ.get("JOURNEYCAPTURE_BROKER_API_KEY")
+    api_key = os.environ.get("JOURNEYDRIVE_BROKER_API_KEY")
     if not api_key:
-        raise ConfigError("JOURNEYCAPTURE_BROKER_API_KEY is required")
+        raise ConfigError("JOURNEYDRIVE_BROKER_API_KEY is required")
 
-    machines_raw = os.environ.get("JOURNEYCAPTURE_BROKER_MACHINES")
+    machines_raw = os.environ.get("JOURNEYDRIVE_BROKER_MACHINES")
     if not machines_raw:
         raise ConfigError(
-            "JOURNEYCAPTURE_BROKER_MACHINES is required — a JSON object of machine_id: api_key pairs"
+            "JOURNEYDRIVE_BROKER_MACHINES is required — a JSON object of machine_id: api_key pairs"
         )
     try:
         machines = json.loads(machines_raw)
     except json.JSONDecodeError as e:
-        raise ConfigError(f"JOURNEYCAPTURE_BROKER_MACHINES is not valid JSON: {e}") from e
+        raise ConfigError(f"JOURNEYDRIVE_BROKER_MACHINES is not valid JSON: {e}") from e
 
     _validate_key_lengths(api_key, machines)
 
-    host = os.environ.get("JOURNEYCAPTURE_BROKER_HOST", "0.0.0.0")
-    ws_host = os.environ.get("JOURNEYCAPTURE_BROKER_WS_HOST", "0.0.0.0")
+    host = os.environ.get("JOURNEYDRIVE_BROKER_HOST", "0.0.0.0")
+    ws_host = os.environ.get("JOURNEYDRIVE_BROKER_WS_HOST", "0.0.0.0")
 
     try:
-        http_port = int(os.environ.get("JOURNEYCAPTURE_BROKER_HTTP_PORT", "8600"))
-        ws_port = int(os.environ.get("JOURNEYCAPTURE_BROKER_WS_PORT", "8601"))
+        http_port = int(os.environ.get("JOURNEYDRIVE_BROKER_HTTP_PORT", "8600"))
+        ws_port = int(os.environ.get("JOURNEYDRIVE_BROKER_WS_PORT", "8601"))
     except ValueError as e:
-        raise ConfigError(f"JOURNEYCAPTURE_BROKER_HTTP_PORT/_WS_PORT must be integers: {e}") from e
+        raise ConfigError(f"JOURNEYDRIVE_BROKER_HTTP_PORT/_WS_PORT must be integers: {e}") from e
 
-    request_timeout_raw = os.environ.get("JOURNEYCAPTURE_BROKER_REQUEST_TIMEOUT", "15.0")
+    request_timeout_raw = os.environ.get("JOURNEYDRIVE_BROKER_REQUEST_TIMEOUT", "15.0")
     try:
         request_timeout = float(request_timeout_raw)
     except ValueError as e:
-        raise ConfigError(f"JOURNEYCAPTURE_BROKER_REQUEST_TIMEOUT must be a number: {e}") from e
+        raise ConfigError(f"JOURNEYDRIVE_BROKER_REQUEST_TIMEOUT must be a number: {e}") from e
 
-    tls_cert_file = os.environ.get("JOURNEYCAPTURE_BROKER_TLS_CERT_FILE")
-    tls_key_file = os.environ.get("JOURNEYCAPTURE_BROKER_TLS_KEY_FILE")
+    tls_cert_file = os.environ.get("JOURNEYDRIVE_BROKER_TLS_CERT_FILE")
+    tls_key_file = os.environ.get("JOURNEYDRIVE_BROKER_TLS_KEY_FILE")
     _validate_tls_files(tls_cert_file, tls_key_file)
 
-    machine_profiles_raw = os.environ.get("JOURNEYCAPTURE_BROKER_MACHINE_PROFILES", "{}")
+    machine_profiles_raw = os.environ.get("JOURNEYDRIVE_BROKER_MACHINE_PROFILES", "{}")
     try:
         machine_profiles = json.loads(machine_profiles_raw)
     except json.JSONDecodeError as e:
-        raise ConfigError(f"JOURNEYCAPTURE_BROKER_MACHINE_PROFILES is not valid JSON: {e}") from e
+        raise ConfigError(f"JOURNEYDRIVE_BROKER_MACHINE_PROFILES is not valid JSON: {e}") from e
 
-    mcp_profile_raw = os.environ.get("JOURNEYCAPTURE_BROKER_MCP_PROFILE", "{}")
+    mcp_profile_raw = os.environ.get("JOURNEYDRIVE_BROKER_MCP_PROFILE", "{}")
     try:
         mcp_profile = json.loads(mcp_profile_raw)
     except json.JSONDecodeError as e:
-        raise ConfigError(f"JOURNEYCAPTURE_BROKER_MCP_PROFILE is not valid JSON: {e}") from e
+        raise ConfigError(f"JOURNEYDRIVE_BROKER_MCP_PROFILE is not valid JSON: {e}") from e
 
     _validate_machine_profiles(machine_profiles, machines)
     _validate_mcp_profile(mcp_profile)

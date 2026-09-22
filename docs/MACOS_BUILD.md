@@ -4,9 +4,9 @@ PyInstaller bundles the host platform's Python interpreter and native libraries 
 does not cross-compile. This build must run on a real Mac. All commands below are
 `bash`/`zsh`, run on macOS.
 
-`journeycapture_mac_thinclient` is a second agent alongside
-`journeycapture_windows_thinclient`, both speaking the same wire protocol to the same
-`journeycapture_broker` — see `docs/THIN_AGENT_PLAYBOOK.md` for how it was built and
+`journeydrive_mac_thinclient` is a second agent alongside
+`journeydrive_windows_thinclient`, both speaking the same wire protocol to the same
+`journeydrive_broker` — see `docs/THIN_AGENT_PLAYBOOK.md` for how it was built and
 what's shared vs. genuinely OS-specific. It reuses the exact same `capture.py`
 (`mss`) and `input_control.py` (`pynput`) approach as the Windows agent — both
 libraries are cross-platform and were verified live on a real Mac to report/act on
@@ -16,8 +16,8 @@ the same real-pixel coordinate space `mss` reports on Windows, with no Retina
 ## 0. Get the code onto the Mac
 
 ```bash
-git clone https://github.com/io-world/journeycapture.git
-cd journeycapture
+git clone https://github.com/io-world/journeydrive.git
+cd journeydrive
 ```
 
 (Or `git pull` if you already have a checkout there.)
@@ -30,7 +30,7 @@ even prompting, depending on macOS version) rather than error clearly — grant 
 *before* your first real test, not after debugging a mysterious no-op:
 
 1. **System Settings → Privacy & Security → Accessibility** — add and enable the
-   terminal app (or the built `journeycapture-mac-<version>` binary itself, if
+   terminal app (or the built `journeydrive-mac-<version>` binary itself, if
    you're running the built binary rather than `uv run` from a terminal) that will
    run the agent. Required for `pynput` to move the mouse, click, or type.
 2. **System Settings → Privacy & Security → Screen Recording** — same, for `mss` to
@@ -49,7 +49,7 @@ scripts/mac_thinclient/build_mac.sh
 This does everything through step 6 below in one command: installs `uv` if it's
 missing, runs `uv sync`, runs the test suite (`uv run pytest -q`, aborting the build
 on failure — pass `--skip-tests` to bypass), builds
-`dist/journeycapture-mac-<version>` with PyInstaller (version read straight from
+`dist/journeydrive-mac-<version>` with PyInstaller (version read straight from
 `pyproject.toml`'s `[project].version`), and copies `examples/config.example.json` →
 `dist/config.json` if one isn't already there. Pass `--open-dist` to have it open
 `dist/` in Finder when done.
@@ -64,7 +64,7 @@ uv sync
 ```
 
 This creates `.venv` and installs everything from `pyproject.toml`/`uv.lock` —
-`journeycapture_mac_thinclient` needs no extra dependency group; `mss`/`pynput`/
+`journeydrive_mac_thinclient` needs no extra dependency group; `mss`/`pynput`/
 `pydantic`/`websockets` are already base project dependencies shared with the
 Windows agent.
 
@@ -82,10 +82,10 @@ good sanity check the checkout is intact before spending time on a build.
 ## 5. Build the binary (manual)
 
 ```bash
-uv run pyinstaller --onefile --console --name journeycapture-mac packaging/run_mac.py
+uv run pyinstaller --onefile --console --name journeydrive-mac packaging/run_mac.py
 ```
 
-This produces `dist/journeycapture-mac`, plus a `build/` scratch directory and a
+This produces `dist/journeydrive-mac`, plus a `build/` scratch directory and a
 generated `.spec` file — both gitignored/disposable. If mouse/keyboard control or
 screenshots fail with an import error at runtime, add the missing module with
 `--hidden-import <module>`.
@@ -112,25 +112,25 @@ system.
 
 ```bash
 cd dist
-./journeycapture-mac-<version>
+./journeydrive-mac-<version>
 ```
 
 The first run triggers the Accessibility/Screen Recording permission prompts if you
 skipped step 1 — grant them, then re-run. This machine only ever connects *out* to
 the broker (a websocket client, not a listening server). Confirm success by checking
-`journeycapture-mac.log` next to the binary for a successful broker connection, and
+`journeydrive-mac.log` next to the binary for a successful broker connection, and
 `GET /machines` on the broker's HTTP API for this `machine_id` showing up as
 connected.
 
 ## 8. Publish a release (optional)
 
 ```bash
-gh release create v<version> "dist/journeycapture-mac-<version>" --title v<version> --notes "..."
+gh release create v<version> "dist/journeydrive-mac-<version>" --title v<version> --notes "..."
 ```
 
 **Remember to rebuild and publish a new release after any change to
 `input_control.py`, `capture.py`, or other runtime code in
-`journeycapture_mac_thinclient`** — a published release is a frozen artifact;
+`journeydrive_mac_thinclient`** — a published release is a frozen artifact;
 pulling the latest source on the Mac doesn't update an already-built/running binary.
 
 ## Next: functional testing
@@ -146,6 +146,6 @@ agent with zero script changes, same as the Windows one.
 A onefile binary that opens an outbound network connection and drives mouse/keyboard
 matches the heuristic signature of a RAT. Depending on distribution method,
 Gatekeeper may quarantine an unsigned binary downloaded from outside the Mac (`xattr
--d com.apple.quarantine dist/journeycapture-mac-<version>` removes the quarantine
+-d com.apple.quarantine dist/journeydrive-mac-<version>` removes the quarantine
 flag for local testing; real distribution would need Apple notarization). Code-
 signing/notarization is not something the Python code can fix.

@@ -1,5 +1,5 @@
 [project]
-name = "journeycapture"
+name = "journeydrive"
 version = "0.4.0"
 description = "Windows thin client exposing a local REST API for remote mouse/keyboard control and screenshot capture"
 readme = "README.md"
@@ -31,17 +31,17 @@ broker = [
 ]
 
 [project.scripts]
-journeycapture = "journeycapture_windows_thinclient:main"
-journeycapture-mac = "journeycapture_mac_thinclient:main"
-journeycapture-mcp = "journeycapture_mcp:main"
-journeycapture-broker = "journeycapture_broker:main"
+journeydrive = "journeydrive_windows_thinclient:main"
+journeydrive-mac = "journeydrive_mac_thinclient:main"
+journeydrive-mcp = "journeydrive_mcp:main"
+journeydrive-broker = "journeydrive_broker:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["journeycapture_windows_thinclient", "journeycapture_mac_thinclient", "journeycapture_mcp", "journeycapture_broker"]
+module-name = ["journeydrive_windows_thinclient", "journeydrive_mac_thinclient", "journeydrive_mcp", "journeydrive_broker"]
 
 [dependency-groups]
 dev = [

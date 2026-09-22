@@ -6,7 +6,7 @@ from typing import Literal
 import mss
 from PIL import Image
 
-from journeycapture_mac_thinclient.schemas import MonitorInfo
+from journeydrive_mac_thinclient.schemas import MonitorInfo
 
 # mss's macOS backend (Quartz/CoreGraphics) already reports monitor bounds and
 # captures pixel data in real display pixels, not "points" — verified live on a

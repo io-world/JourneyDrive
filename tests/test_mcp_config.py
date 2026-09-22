@@ -7,7 +7,7 @@ import pytest
 
 pytest.importorskip("mcp")  # controller-side-only extra; not installed for the Windows thin-client build
 
-from journeycapture_mcp.config import ConfigError, load_settings
+from journeydrive_mcp.config import ConfigError, load_settings
 
 
 def write_config(tmp_path: Path, data: dict) -> Path:
@@ -74,16 +74,16 @@ def test_missing_broker_api_key_raises(tmp_path: Path) -> None:
 
 
 def test_env_vars_used_when_no_config_path(monkeypatch) -> None:
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_HOST", "192.168.1.50")
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_HOST", "192.168.1.50")
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
     settings = load_settings()
     assert settings.broker_host == "192.168.1.50"
 
 
 def test_missing_broker_host_env_var_raises(monkeypatch) -> None:
-    monkeypatch.delenv("JOURNEYCAPTURE_BROKER_HOST", raising=False)
-    monkeypatch.delenv("JOURNEYCAPTURE_BROKER_API_KEY", raising=False)
-    with pytest.raises(ConfigError, match="JOURNEYCAPTURE_BROKER_HOST"):
+    monkeypatch.delenv("JOURNEYDRIVE_BROKER_HOST", raising=False)
+    monkeypatch.delenv("JOURNEYDRIVE_BROKER_API_KEY", raising=False)
+    with pytest.raises(ConfigError, match="JOURNEYDRIVE_BROKER_HOST"):
         load_settings()
 
 
@@ -96,19 +96,19 @@ def test_https_without_fingerprint_raises_file(tmp_path: Path) -> None:
 
 
 def test_https_without_fingerprint_raises_env(monkeypatch) -> None:
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_HOST", "192.168.1.50")
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_SCHEME", "https")
-    monkeypatch.delenv("JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT", raising=False)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_HOST", "192.168.1.50")
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_SCHEME", "https")
+    monkeypatch.delenv("JOURNEYDRIVE_BROKER_CERT_FINGERPRINT", raising=False)
     with pytest.raises(ConfigError, match="broker_cert_fingerprint is required"):
         load_settings()
 
 
 def test_https_with_fingerprint_loads_env(monkeypatch) -> None:
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_HOST", "192.168.1.50")
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_SCHEME", "https")
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT", "aa" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_HOST", "192.168.1.50")
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_SCHEME", "https")
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_CERT_FINGERPRINT", "aa" * 32)
     settings = load_settings()
     assert settings.broker_scheme == "https"
     assert settings.broker_cert_fingerprint == "aa" * 32

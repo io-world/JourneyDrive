@@ -4,15 +4,15 @@ from typing import Any, Literal
 
 import httpx
 
-from journeycapture_mcp.config import Settings
-from journeycapture_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
+from journeydrive_mcp.config import Settings
+from journeydrive_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
 
 
-class JourneyCaptureError(RuntimeError):
+class JourneyDriveError(RuntimeError):
     """Raised when the broker's HTTP API returns an error response."""
 
 
-class JourneyCaptureClient:
+class JourneyDriveClient:
     """Thin async wrapper around the broker's HTTP API — every method targets one
     machine_id, routed by the broker to that machine's websocket connection."""
 
@@ -48,9 +48,9 @@ class JourneyCaptureClient:
         try:
             resp = await self._client.request(method, path, **kwargs)
         except httpx.HTTPError as e:
-            raise JourneyCaptureError(f"{method} {path} failed: {e}") from e
+            raise JourneyDriveError(f"{method} {path} failed: {e}") from e
         if resp.status_code >= 400:
-            raise JourneyCaptureError(f"{method} {path} -> {resp.status_code}: {resp.text}")
+            raise JourneyDriveError(f"{method} {path} -> {resp.status_code}: {resp.text}")
         return resp
 
     async def list_machines(self) -> list[dict]:
@@ -63,16 +63,16 @@ class JourneyCaptureClient:
         Tolerates a 404 (an older broker with no /mcp-config route at all) by
         returning {}, same as an empty mcp_profile — either way, the caller just
         keeps its own local settings for anything not returned here. A genuine
-        connectivity/auth failure still raises JourneyCaptureError normally.
+        connectivity/auth failure still raises JourneyDriveError normally.
         """
         try:
             resp = await self._client.request("GET", "/mcp-config")
         except httpx.HTTPError as e:
-            raise JourneyCaptureError(f"GET /mcp-config failed: {e}") from e
+            raise JourneyDriveError(f"GET /mcp-config failed: {e}") from e
         if resp.status_code == 404:
             return {}
         if resp.status_code >= 400:
-            raise JourneyCaptureError(f"GET /mcp-config -> {resp.status_code}: {resp.text}")
+            raise JourneyDriveError(f"GET /mcp-config -> {resp.status_code}: {resp.text}")
         return resp.json()
 
     async def health(self, machine: str) -> dict:

@@ -1,3 +1,3 @@
-from journeycapture_mac_thinclient import main
+from journeydrive_mac_thinclient import main
 
 main()

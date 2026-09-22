@@ -5,16 +5,16 @@ import asyncio
 import logging
 import sys
 
-from journeycapture_windows_thinclient import ws_client
-from journeycapture_windows_thinclient.config import ConfigError, load_config, resolve_config_path
-from journeycapture_windows_thinclient.logging_setup import configure_logging
-from journeycapture_windows_thinclient.winutil import set_dpi_awareness
+from journeydrive_windows_thinclient import ws_client
+from journeydrive_windows_thinclient.config import ConfigError, load_config, resolve_config_path
+from journeydrive_windows_thinclient.logging_setup import configure_logging
+from journeydrive_windows_thinclient.winutil import set_dpi_awareness
 
 logger = logging.getLogger(__name__)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="journeycapture")
+    parser = argparse.ArgumentParser(prog="journeydrive")
     parser.add_argument("--config", default=None, help="Path to config.json")
     return parser.parse_args(argv)
 
@@ -26,7 +26,7 @@ def main() -> None:
     try:
         config = load_config(config_path)
     except ConfigError as e:
-        print(f"journeycapture: {e}", file=sys.stderr)
+        print(f"journeydrive: {e}", file=sys.stderr)
         sys.exit(1)
 
     configure_logging(config)
@@ -41,13 +41,13 @@ def main() -> None:
         # themselves, not a transient network issue. Exit non-zero so this is
         # distinguishable from a normal shutdown by anything checking the exit code.
         logger.error("broker rejected this machine's credentials: %s", e)
-        print(f"journeycapture: broker rejected this machine's credentials: {e}", file=sys.stderr)
+        print(f"journeydrive: broker rejected this machine's credentials: {e}", file=sys.stderr)
         sys.exit(1)
     except ws_client.BrokerUnreachable as e:
         logger.error("%s", e)
         print(
-            f"journeycapture: {e}\n"
-            "journeycapture: check that the broker is running and that broker_host/broker_port "
+            f"journeydrive: {e}\n"
+            "journeydrive: check that the broker is running and that broker_host/broker_port "
             "in config.json are correct.",
             file=sys.stderr,
         )
@@ -56,7 +56,7 @@ def main() -> None:
         # Not recoverable by retrying — either broker_cert_fingerprint in config.json
         # is wrong, or the broker's certificate was regenerated without updating it.
         logger.error("%s", e)
-        print(f"journeycapture: {e}", file=sys.stderr)
+        print(f"journeydrive: {e}", file=sys.stderr)
         sys.exit(1)
 
 

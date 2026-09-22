@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from journeycapture_windows_thinclient.config import ConfigError, load_config
+from journeydrive_windows_thinclient.config import ConfigError, load_config
 
 
 def write_config(tmp_path: Path, data: dict) -> Path:

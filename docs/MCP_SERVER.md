@@ -1,6 +1,6 @@
 # MCP server
 
-`journeycapture-mcp` exposes the broker's HTTP API (`docs/BROKER.md`) as MCP tools, so
+`journeydrive-mcp` exposes the broker's HTTP API (`docs/BROKER.md`) as MCP tools, so
 an MCP-aware assistant can move the mouse, click, scroll, type, send key chords, and
 capture screenshots on any Windows machine the broker has a connection to.
 
@@ -17,18 +17,18 @@ uv sync --extra mcp
 ```
 
 This is a separate step from the plain `uv sync` used for the thin client itself —
-the MCP SDK isn't a dependency of `journeycapture.exe` or its Windows build.
+the MCP SDK isn't a dependency of `journeydrive.exe` or its Windows build.
 
 ## Configuration
 
 Two ways to configure it — a JSON file or environment variables.
-`journeycapture_mcp/config.py` uses the file when `--config` is given, otherwise
+`journeydrive_mcp/config.py` uses the file when `--config` is given, otherwise
 falls back to the environment variables.
 
 **File** (`--config PATH`):
 
 ```
-uv run journeycapture-mcp --config scripts/mcp/mcp_config.json
+uv run journeydrive-mcp --config scripts/mcp/mcp_config.json
 ```
 
 Recognized keys: `broker_host`, `broker_api_key` (both required — `broker_api_key`
@@ -43,23 +43,23 @@ must match the broker's own `api_key`, not any individual machine's), `broker_po
 
 | Variable | Required | Default | Notes |
 |---|---|---|---|
-| `JOURNEYCAPTURE_BROKER_HOST` | yes | — | IP or hostname of the broker |
-| `JOURNEYCAPTURE_BROKER_API_KEY` | yes | — | must match the broker's own `api_key` |
-| `JOURNEYCAPTURE_BROKER_PORT` | no | `8600` | the broker's HTTP port |
-| `JOURNEYCAPTURE_BROKER_SCHEME` | no | `http` | `http` or `https`, for reaching the broker |
-| `JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT` | if `https` | — | the broker cert's SHA-256 fingerprint, pinned |
-| `JOURNEYCAPTURE_MCP_HOST` | no | `127.0.0.1` | where **this** server itself listens |
-| `JOURNEYCAPTURE_MCP_PORT` | no | `8000` | where **this** server itself listens |
-| `JOURNEYCAPTURE_MCP_SAVE_SCREENSHOTS` | no | off | `1`/`true`/`yes` to enable — see below |
-| `JOURNEYCAPTURE_MCP_SCREENSHOT_DIR` | no | `screenshots` | where saved copies go |
-| `JOURNEYCAPTURE_MCP_MAX_SAVED_SCREENSHOTS` | no | `100` | 0 or negative disables pruning |
+| `JOURNEYDRIVE_BROKER_HOST` | yes | — | IP or hostname of the broker |
+| `JOURNEYDRIVE_BROKER_API_KEY` | yes | — | must match the broker's own `api_key` |
+| `JOURNEYDRIVE_BROKER_PORT` | no | `8600` | the broker's HTTP port |
+| `JOURNEYDRIVE_BROKER_SCHEME` | no | `http` | `http` or `https`, for reaching the broker |
+| `JOURNEYDRIVE_BROKER_CERT_FINGERPRINT` | if `https` | — | the broker cert's SHA-256 fingerprint, pinned |
+| `JOURNEYDRIVE_MCP_HOST` | no | `127.0.0.1` | where **this** server itself listens |
+| `JOURNEYDRIVE_MCP_PORT` | no | `8000` | where **this** server itself listens |
+| `JOURNEYDRIVE_MCP_SAVE_SCREENSHOTS` | no | off | `1`/`true`/`yes` to enable — see below |
+| `JOURNEYDRIVE_MCP_SCREENSHOT_DIR` | no | `screenshots` | where saved copies go |
+| `JOURNEYDRIVE_MCP_MAX_SAVED_SCREENSHOTS` | no | `100` | 0 or negative disables pruning |
 
 Either way, a missing broker_host/broker_api_key fails fast with a clear message on
 stderr rather than starting half-configured.
 
 Don't confuse the two host/port pairs: `broker_host`/`broker_port` (or
-`JOURNEYCAPTURE_BROKER_HOST`/`_PORT`) is where the broker is; `mcp_host`/`mcp_port`
-(or `JOURNEYCAPTURE_MCP_HOST`/`_PORT`) is where this server binds for its own MCP
+`JOURNEYDRIVE_BROKER_HOST`/`_PORT`) is where the broker is; `mcp_host`/`mcp_port`
+(or `JOURNEYDRIVE_MCP_HOST`/`_PORT`) is where this server binds for its own MCP
 clients to connect to.
 
 ## Running it
@@ -68,7 +68,7 @@ This server speaks MCP over **streamable HTTP**, not stdio — you start it your
 separately from your MCP client, and it keeps running until you stop it:
 
 ```
-uv run journeycapture-mcp --config scripts/mcp/mcp_config.json
+uv run journeydrive-mcp --config scripts/mcp/mcp_config.json
 ```
 
 By default it binds `127.0.0.1:8000` — loopback only, so nothing off this machine can
@@ -77,7 +77,7 @@ reach it. Then point your MCP client at it, e.g. a `.mcp.json` entry:
 ```json
 {
   "mcpServers": {
-    "journeycapture": {
+    "journeydrive": {
       "type": "http",
       "url": "http://127.0.0.1:8000/mcp"
     }
@@ -88,7 +88,7 @@ reach it. Then point your MCP client at it, e.g. a `.mcp.json` entry:
 **Security note:** this server holds the broker's real API key internally and has no
 authentication of its own at the MCP/HTTP layer — anything that can reach its bound
 address can drive every machine connected to the broker through it. The loopback-only
-default (`JOURNEYCAPTURE_MCP_HOST=127.0.0.1`) is what keeps this to "processes on this
+default (`JOURNEYDRIVE_MCP_HOST=127.0.0.1`) is what keeps this to "processes on this
 machine only." Only change it to a non-loopback address if you specifically intend to
 expose it to other machines, and understand what that means for every machine behind
 the broker, not just one.
@@ -104,9 +104,9 @@ pulling code changes) is on you — stop it (`Ctrl-C` or `kill`) and run it agai
 
 ## Logging
 
-Every tool call is logged (`journeycapture_mcp/server.py`) — tool name, machine, and
-arguments — to both the console and a rotating `journeycapture-mcp.log` file next to
-wherever you ran the command (`journeycapture_mcp/logging_setup.py`, same
+Every tool call is logged (`journeydrive_mcp/server.py`) — tool name, machine, and
+arguments — to both the console and a rotating `journeydrive-mcp.log` file next to
+wherever you ran the command (`journeydrive_mcp/logging_setup.py`, same
 console+file pattern as the thin client's own logging). `type_text` logs the
 character count only, never the typed text itself, for the same reason the thin
 client does — it could be a password or other sensitive content.
@@ -118,7 +118,7 @@ how close together they are, since each is a fully separate round trip).
 
 ## Tools
 
-One tool per REST endpoint the broker exposes (`journeycapture_mcp/server.py`) —
+One tool per REST endpoint the broker exposes (`journeydrive_mcp/server.py`) —
 `list_machines`, `health_check`, `list_monitors`, `take_screenshot`, `preview_click`,
 `move_mouse`, `click_mouse`, `scroll_mouse`, `type_text`, `send_keys`,
 `get_clipboard`, `set_clipboard`. Every tool except `list_machines` takes a required
@@ -196,10 +196,10 @@ argument.
 ### Saving screenshots locally
 
 Off by default. Set `save_screenshots: true` (config file) or
-`JOURNEYCAPTURE_MCP_SAVE_SCREENSHOTS=1` (env var) to also save a timestamped copy of
+`JOURNEYDRIVE_MCP_SAVE_SCREENSHOTS=1` (env var) to also save a timestamped copy of
 every `take_screenshot` result — the cropped version, if a crop was requested, since
 the point is debugging what the model actually saw — to `screenshot_dir` (default
-`screenshots/`, created if missing, relative to wherever `journeycapture-mcp` was run
+`screenshots/`, created if missing, relative to wherever `journeydrive-mcp` was run
 from). Filenames are UTC timestamps down to the
 microsecond (e.g. `20260819T235959_123456.png` — PNG is the default capture format,
 `.jpeg` only if a machine or call explicitly opts into it), so concurrent/rapid screenshots don't
@@ -210,7 +210,7 @@ this is a debugging convenience, not core functionality. `screenshots/` is
 gitignored; nothing here is ever committed.
 
 Capped at `max_saved_screenshots` (default `100`, config file key or
-`JOURNEYCAPTURE_MCP_MAX_SAVED_SCREENSHOTS` env var) — after each save, the oldest
+`JOURNEYDRIVE_MCP_MAX_SAVED_SCREENSHOTS` env var) — after each save, the oldest
 files beyond the cap are pruned automatically, so the folder doesn't grow forever.
 Set it to `0` (or negative) to disable pruning and keep everything.
 
@@ -245,6 +245,6 @@ installed — which is the normal state on the Windows build, since
 
 No live broker/machine is needed for these tests — `test_mcp_client.py` mocks the
 HTTP layer with `httpx.MockTransport`, and `test_mcp_server.py` mocks
-`JourneyCaptureClient` itself. For an actual end-to-end check, run a broker and a
+`JourneyDriveClient` itself. For an actual end-to-end check, run a broker and a
 thin client (see `docs/BROKER.md`), then call `list_machines` and `health_check`
 first (cheapest, no side effects) before anything else.

@@ -1,7 +1,7 @@
 # Broker
 
-`journeycapture-broker` sits between the MCP server and one or more thin clients
-(`journeycapture.exe` on Windows, `journeycapture-mac` on macOS — see
+`journeydrive-broker` sits between the MCP server and one or more thin clients
+(`journeydrive.exe` on Windows, `journeydrive-mac` on macOS — see
 `docs/THIN_AGENT_PLAYBOOK.md` for adding another OS). It's what makes "one MCP
 server, many machines" possible: each thin client connects *out* to the broker over
 a websocket — it doesn't accept inbound connections at all — so the broker can reach
@@ -11,8 +11,8 @@ the thin client's original REST shape — identically regardless of which OS age
 actually behind a given machine id.
 
 ```
-MCP server  --HTTP-->  broker  <--WebSocket--  thin client (journeycapture.exe, Windows)
-                                <--WebSocket--  thin client (journeycapture-mac, macOS)
+MCP server  --HTTP-->  broker  <--WebSocket--  thin client (journeydrive.exe, Windows)
+                                <--WebSocket--  thin client (journeydrive-mac, macOS)
 ```
 
 Runs wherever is reachable by both the MCP server and every thin client — today that's
@@ -72,14 +72,14 @@ the MCP server.
   `screenshot_dir`/`max_saved_screenshots`/`timeout`. Fetched by the MCP server
   once at startup via `GET /mcp-config`. See "Broker-pushed config" below.
 
-**Environment variables**: `JOURNEYCAPTURE_BROKER_API_KEY`,
-`JOURNEYCAPTURE_BROKER_MACHINES` (a JSON object, e.g.
-`'{"office-pc": "...", "home-pc": "..."}'`), `JOURNEYCAPTURE_BROKER_HOST`,
-`JOURNEYCAPTURE_BROKER_WS_HOST`, `JOURNEYCAPTURE_BROKER_HTTP_PORT`,
-`JOURNEYCAPTURE_BROKER_WS_PORT`, `JOURNEYCAPTURE_BROKER_REQUEST_TIMEOUT`,
-`JOURNEYCAPTURE_BROKER_TLS_CERT_FILE`, `JOURNEYCAPTURE_BROKER_TLS_KEY_FILE`,
-`JOURNEYCAPTURE_BROKER_MACHINE_PROFILES` (a JSON object keyed by `machine_id`),
-`JOURNEYCAPTURE_BROKER_MCP_PROFILE` (a JSON object).
+**Environment variables**: `JOURNEYDRIVE_BROKER_API_KEY`,
+`JOURNEYDRIVE_BROKER_MACHINES` (a JSON object, e.g.
+`'{"office-pc": "...", "home-pc": "..."}'`), `JOURNEYDRIVE_BROKER_HOST`,
+`JOURNEYDRIVE_BROKER_WS_HOST`, `JOURNEYDRIVE_BROKER_HTTP_PORT`,
+`JOURNEYDRIVE_BROKER_WS_PORT`, `JOURNEYDRIVE_BROKER_REQUEST_TIMEOUT`,
+`JOURNEYDRIVE_BROKER_TLS_CERT_FILE`, `JOURNEYDRIVE_BROKER_TLS_KEY_FILE`,
+`JOURNEYDRIVE_BROKER_MACHINE_PROFILES` (a JSON object keyed by `machine_id`),
+`JOURNEYDRIVE_BROKER_MCP_PROFILE` (a JSON object).
 
 ## TLS setup
 
@@ -99,7 +99,7 @@ unchanged.
 ```
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
   -keyout broker_key.pem -out broker_cert.pem \
-  -subj "/CN=journeycapture-broker" \
+  -subj "/CN=journeydrive-broker" \
   -addext "subjectAltName=IP:192.168.1.10"
 
 openssl x509 -in broker_cert.pem -noout -fingerprint -sha256
@@ -167,7 +167,7 @@ then always sends one more frame — `{"type": "config", ...}` with whatever's i
 machine. The thin client applies it on top of its local config.json (a field the
 push doesn't mention keeps whatever the local value already was), on every
 successful (re)connect, not just the first — see
-`journeycapture_windows_thinclient/ws_client.py`'s `_apply_config_push`. See
+`journeydrive_windows_thinclient/ws_client.py`'s `_apply_config_push`. See
 `docs/THIN_AGENT_PLAYBOOK.md`'s §1 for the exact wire format, since this is part of
 the protocol contract any new agent needs to implement too, not just this repo's
 own thin client.
@@ -183,8 +183,8 @@ fresh monitors frame and refreshes the cache. This is why the (former)
 `screenshot_monitors` live websocket method was removed — nothing calls it
 anymore now that both HTTP routes read the cache.
 
-**MCP server**: `journeycapture_mcp/__init__.main()` calls `GET /mcp-config` once
-at startup (via `JourneyCaptureClient.get_mcp_config()`) and merges whatever keys
+**MCP server**: `journeydrive_mcp/__init__.main()` calls `GET /mcp-config` once
+at startup (via `JourneyDriveClient.get_mcp_config()`) and merges whatever keys
 come back over the matching local `Settings` fields before building the server.
 This fetch failing (broker unreachable, wrong key) logs a warning and falls back to
 local-only settings rather than refusing to start — a broker being briefly down at
@@ -205,12 +205,12 @@ no third place it could be.
 ## Running it
 
 ```
-uv run journeycapture-broker --config broker_config.json
+uv run journeydrive-broker --config broker_config.json
 ```
 
 Runs the HTTP API and the websocket server concurrently in one process
-(`journeycapture_broker/__init__.py`, `asyncio.gather`). Logs to console and a
-rotating `journeycapture-broker.log`, same pattern as the other two components.
+(`journeydrive_broker/__init__.py`, `asyncio.gather`). Logs to console and a
+rotating `journeydrive-broker.log`, same pattern as the other two components.
 
 ## HTTP API
 
@@ -237,14 +237,14 @@ since `host` defaults to `0.0.0.0` (unlike the MCP server's loopback-only defaul
 means anyone on the network by default, not just in an unusual deployment.
 
 Request/response shapes are identical to the thin client's original REST API — the
-broker reuses `journeycapture_windows_thinclient.schemas` directly rather than duplicating
+broker reuses `journeydrive_windows_thinclient.schemas` directly rather than duplicating
 them. A request for a machine id that isn't currently connected gets `404`; a machine
 that doesn't respond within `request_timeout` gets `504`; an error the thin client
 itself reports (e.g. an unknown key name) gets `400`.
 
 ## How a request actually gets routed
 
-`journeycapture_broker/registry.py`'s `ConnectionRegistry` is the core of the broker:
+`journeydrive_broker/registry.py`'s `ConnectionRegistry` is the core of the broker:
 it maps `machine_id` → the machine's live websocket connection, and correlates each
 outgoing `{"id", "method", "params"}` message with the HTTP call awaiting a response,
 by `id` (a `uuid4` generated per call). When the thin client's response arrives on

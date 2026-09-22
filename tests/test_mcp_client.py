@@ -6,8 +6,8 @@ pytest.importorskip("mcp")  # controller-side-only extra; not installed for the 
 
 import httpx
 
-from journeycapture_mcp.client import JourneyCaptureClient, JourneyCaptureError
-from journeycapture_mcp.config import Settings
+from journeydrive_mcp.client import JourneyDriveClient, JourneyDriveError
+from journeydrive_mcp.config import Settings
 
 
 @pytest.fixture
@@ -16,14 +16,14 @@ def settings() -> Settings:
 
 
 def test_set_timeout_updates_underlying_httpx_client(settings: Settings) -> None:
-    client = JourneyCaptureClient(settings)
+    client = JourneyDriveClient(settings)
     assert client._client.timeout != httpx.Timeout(42.0)
     client.set_timeout(42.0)
     assert client._client.timeout == httpx.Timeout(42.0)
 
 
-def make_client(settings: Settings, handler) -> JourneyCaptureClient:
-    client = JourneyCaptureClient(settings)
+def make_client(settings: Settings, handler) -> JourneyDriveClient:
+    client = JourneyDriveClient(settings)
     client._client = httpx.AsyncClient(
         base_url=client._client.base_url,
         headers=client._client.headers,
@@ -101,12 +101,12 @@ async def test_screenshot_returns_bytes_and_content_type(settings: Settings) -> 
 
 
 @pytest.mark.asyncio
-async def test_error_response_raises_journeycapture_error(settings: Settings) -> None:
+async def test_error_response_raises_journeydrive_error(settings: Settings) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(404, json={"detail": "machine 'office-pc' is not connected"})
 
     client = make_client(settings, handler)
-    with pytest.raises(JourneyCaptureError, match="404"):
+    with pytest.raises(JourneyDriveError, match="404"):
         await client.health("office-pc")
 
 
@@ -136,7 +136,7 @@ async def test_get_mcp_config_raises_on_other_errors(settings: Settings) -> None
         return httpx.Response(500, text="internal error")
 
     client = make_client(settings, handler)
-    with pytest.raises(JourneyCaptureError, match="500"):
+    with pytest.raises(JourneyDriveError, match="500"):
         await client.get_mcp_config()
 
 

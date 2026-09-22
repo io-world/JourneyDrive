@@ -8,9 +8,9 @@ pytest.importorskip("fastapi")  # controller-side-only extra; not installed for 
 
 from fastapi.testclient import TestClient
 
-from journeycapture_broker.config import Settings
-from journeycapture_broker.http_api import create_app
-from journeycapture_broker.registry import MachineError, MachineNotConnected, MachineTimeout
+from journeydrive_broker.config import Settings
+from journeydrive_broker.http_api import create_app
+from journeydrive_broker.registry import MachineError, MachineNotConnected, MachineTimeout
 
 API_KEY = "a" * 32
 

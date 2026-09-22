@@ -4,10 +4,10 @@ Run this from any machine that can reach the broker — it never runs on the bro
 the thin client itself.
 
 Reads defaults from config.json next to this script (same file used by the other
-scripts and by journeycapture-mcp). Any CLI flag overrides the matching config value,
+scripts and by journeydrive-mcp). Any CLI flag overrides the matching config value,
 so it also works with no config file at all, e.g. run unmodified from VS Code's Run
 button once the config file has broker_host/api_key/machine_id filled in. Saves into
-screenshot_dir (same config key and default journeycapture_mcp's optional
+screenshot_dir (same config key and default journeydrive_mcp's optional
 local-saving feature uses) with a timestamped filename, unless --out gives an exact
 path:
 
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import httpx
 
-from journeycapture_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
+from journeydrive_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
 
@@ -50,8 +50,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--machine", default=config.get("machine_id"), help="machine_id to target, as configured on the broker")
     parser.add_argument(
         "--api-key",
-        default=config.get("broker_api_key") or os.environ.get("JOURNEYCAPTURE_BROKER_API_KEY"),
-        help=f"The broker's own api_key. Defaults to {CONFIG_PATH.name}'s broker_api_key, then the JOURNEYCAPTURE_BROKER_API_KEY env var",
+        default=config.get("broker_api_key") or os.environ.get("JOURNEYDRIVE_BROKER_API_KEY"),
+        help=f"The broker's own api_key. Defaults to {CONFIG_PATH.name}'s broker_api_key, then the JOURNEYDRIVE_BROKER_API_KEY env var",
     )
     parser.add_argument(
         "--monitor", type=int, default=config.get("monitor"), help="Monitor index (default: machine's own config)"
@@ -67,9 +67,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=config.get("timeout", 10.0))
     parser.add_argument(
         "--broker-cert-fingerprint",
-        default=config.get("broker_cert_fingerprint") or os.environ.get("JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT"),
+        default=config.get("broker_cert_fingerprint") or os.environ.get("JOURNEYDRIVE_BROKER_CERT_FINGERPRINT"),
         help=f"SHA-256 fingerprint of the broker's TLS certificate. Required when --broker-scheme https. "
-        f"Defaults to {CONFIG_PATH.name}'s broker_cert_fingerprint, then the JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT env var",
+        f"Defaults to {CONFIG_PATH.name}'s broker_cert_fingerprint, then the JOURNEYDRIVE_BROKER_CERT_FINGERPRINT env var",
     )
     args = parser.parse_args()
 
@@ -79,12 +79,12 @@ def parse_args() -> argparse.Namespace:
         parser.error(f"--machine is required (or set 'machine_id' in {CONFIG_PATH.name})")
     if not args.api_key:
         parser.error(
-            f"--api-key is required (or set 'broker_api_key' in {CONFIG_PATH.name}, or JOURNEYCAPTURE_BROKER_API_KEY)"
+            f"--api-key is required (or set 'broker_api_key' in {CONFIG_PATH.name}, or JOURNEYDRIVE_BROKER_API_KEY)"
         )
     if args.broker_scheme == "https" and not args.broker_cert_fingerprint:
         parser.error(
             f"--broker-cert-fingerprint is required when --broker-scheme https "
-            f"(or set 'broker_cert_fingerprint' in {CONFIG_PATH.name}, or JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT)"
+            f"(or set 'broker_cert_fingerprint' in {CONFIG_PATH.name}, or JOURNEYDRIVE_BROKER_CERT_FINGERPRINT)"
         )
     return args
 

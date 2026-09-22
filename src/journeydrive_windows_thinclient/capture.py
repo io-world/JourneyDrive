@@ -6,7 +6,7 @@ from typing import Literal
 import mss
 from PIL import Image
 
-from journeycapture_windows_thinclient.schemas import MonitorInfo
+from journeydrive_windows_thinclient.schemas import MonitorInfo
 
 
 def list_monitors() -> list[MonitorInfo]:

@@ -11,10 +11,10 @@ from pydantic import ValidationError
 from websockets.asyncio.client import ClientConnection
 from websockets.asyncio.client import process_exception as _default_process_exception
 
-from journeycapture_windows_thinclient import capture, input_control, tls_pinning
-from journeycapture_windows_thinclient.config import Config, ScreenshotConfig
-from journeycapture_windows_thinclient.tls_pinning import CertificateFingerprintMismatch  # noqa: F401
-from journeycapture_windows_thinclient.schemas import (
+from journeydrive_windows_thinclient import capture, input_control, tls_pinning
+from journeydrive_windows_thinclient.config import Config, ScreenshotConfig
+from journeydrive_windows_thinclient.tls_pinning import CertificateFingerprintMismatch  # noqa: F401
+from journeydrive_windows_thinclient.schemas import (
     ClipboardSetRequest,
     KeyboardKeyRequest,
     KeyboardTypeRequest,
@@ -26,7 +26,7 @@ from journeycapture_windows_thinclient.schemas import (
 logger = logging.getLogger(__name__)
 
 try:
-    _VERSION = version("journeycapture")
+    _VERSION = version("journeydrive")
 except PackageNotFoundError:
     _VERSION = "0.0.0"
 

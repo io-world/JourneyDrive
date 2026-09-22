@@ -7,7 +7,7 @@ import pytest
 
 pytest.importorskip("fastapi")  # controller-side-only extra; not installed for the Windows thin-client build
 
-from journeycapture_broker.config import ConfigError, load_settings
+from journeydrive_broker.config import ConfigError, load_settings
 
 
 def write_config(tmp_path: Path, data: dict) -> Path:
@@ -55,17 +55,17 @@ def test_short_machine_key_raises(tmp_path: Path) -> None:
 
 
 def test_env_vars_used_when_no_config_path(monkeypatch) -> None:
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
     settings = load_settings()
     assert settings.api_key == "a" * 32
     assert settings.machines == {"office-pc": "b" * 32}
 
 
 def test_env_vars_read_request_timeout(monkeypatch) -> None:
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_REQUEST_TIMEOUT", "30.0")
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_REQUEST_TIMEOUT", "30.0")
     settings = load_settings()
     assert settings.request_timeout == 30.0
 
@@ -83,9 +83,9 @@ def test_tls_requires_cert_and_key_together_file(tmp_path: Path) -> None:
 def test_tls_requires_cert_and_key_together_env(monkeypatch, tmp_path: Path) -> None:
     cert = tmp_path / "cert.pem"
     cert.write_text("dummy")
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_TLS_CERT_FILE", str(cert))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_TLS_CERT_FILE", str(cert))
     with pytest.raises(ConfigError, match="tls_cert_file and tls_key_file must be given together"):
         load_settings()
 
@@ -130,10 +130,10 @@ def test_tls_fields_load_from_env(monkeypatch, tmp_path: Path) -> None:
     key = tmp_path / "key.pem"
     cert.write_text("dummy")
     key.write_text("dummy")
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_TLS_CERT_FILE", str(cert))
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_TLS_KEY_FILE", str(key))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_TLS_CERT_FILE", str(cert))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_TLS_KEY_FILE", str(key))
     settings = load_settings()
     assert settings.tls_cert_file == str(cert)
     assert settings.tls_key_file == str(key)
@@ -241,12 +241,12 @@ def test_profiles_empty_by_default(tmp_path: Path) -> None:
 
 
 def test_machine_profiles_load_from_env(monkeypatch) -> None:
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_API_KEY", "a" * 32)
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_API_KEY", "a" * 32)
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_MACHINES", json.dumps({"office-pc": "b" * 32}))
     monkeypatch.setenv(
-        "JOURNEYCAPTURE_BROKER_MACHINE_PROFILES", json.dumps({"office-pc": {"log_level": "WARNING"}})
+        "JOURNEYDRIVE_BROKER_MACHINE_PROFILES", json.dumps({"office-pc": {"log_level": "WARNING"}})
     )
-    monkeypatch.setenv("JOURNEYCAPTURE_BROKER_MCP_PROFILE", json.dumps({"save_screenshots": True}))
+    monkeypatch.setenv("JOURNEYDRIVE_BROKER_MCP_PROFILE", json.dumps({"save_screenshots": True}))
     settings = load_settings()
     assert settings.machine_profiles == {"office-pc": {"log_level": "WARNING"}}
     assert settings.mcp_profile == {"save_screenshots": True}

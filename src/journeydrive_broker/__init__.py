@@ -7,11 +7,11 @@ import sys
 
 import uvicorn
 
-from journeycapture_broker.config import ConfigError, Settings, load_settings
-from journeycapture_broker.http_api import create_app
-from journeycapture_broker.logging_setup import configure_logging
-from journeycapture_broker.registry import ConnectionRegistry
-from journeycapture_broker.ws_server import run as run_ws_server
+from journeydrive_broker.config import ConfigError, Settings, load_settings
+from journeydrive_broker.http_api import create_app
+from journeydrive_broker.logging_setup import configure_logging
+from journeydrive_broker.registry import ConnectionRegistry
+from journeydrive_broker.ws_server import run as run_ws_server
 
 __all__ = ["main"]
 
@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="journeycapture-broker")
+    parser = argparse.ArgumentParser(prog="journeydrive-broker")
     parser.add_argument(
         "--config",
         default=None,
         help="Path to a JSON config file with api_key/machines/etc. "
-        "Overrides the JOURNEYCAPTURE_BROKER_* environment variables when given.",
+        "Overrides the JOURNEYDRIVE_BROKER_* environment variables when given.",
     )
     return parser.parse_args(argv)
 
@@ -60,7 +60,7 @@ def main() -> None:
     try:
         settings = load_settings(args.config)
     except ConfigError as e:
-        print(f"journeycapture-broker: {e}", file=sys.stderr)
+        print(f"journeydrive-broker: {e}", file=sys.stderr)
         sys.exit(1)
 
     configure_logging()

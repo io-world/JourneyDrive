@@ -7,9 +7,9 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
 from pydantic import BaseModel
 
-from journeycapture_broker.config import Settings
-from journeycapture_broker.registry import ConnectionRegistry, MachineError, MachineNotConnected, MachineTimeout
-from journeycapture_windows_thinclient.schemas import (
+from journeydrive_broker.config import Settings
+from journeydrive_broker.registry import ConnectionRegistry, MachineError, MachineNotConnected, MachineTimeout
+from journeydrive_windows_thinclient.schemas import (
     ClipboardGetResponse,
     ClipboardSetRequest,
     KeyboardKeyRequest,

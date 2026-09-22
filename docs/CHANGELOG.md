@@ -1,6 +1,6 @@
 # Changelog
 
-Notable changes to JourneyCapture, newest first. Commit hashes refer to `main`.
+Notable changes to JourneyDrive, newest first. Commit hashes refer to `main`.
 
 ## 2026-09-16 — Fix `preview_click` marker visibility, default to PNG, cache monitor layout
 
@@ -34,7 +34,7 @@ action could even happen.
   manual restart) refreshes it. The now-unused live `screenshot_monitors`
   websocket method was removed from both thin clients as dead code — nothing
   calls it anymore now that both HTTP routes are cache-backed.
-- `journeycapture_mcp`'s `list_machines` tool is simpler than before as a
+- `journeydrive_mcp`'s `list_machines` tool is simpler than before as a
   result — it returns the broker's already-aggregated
   `[{"machine_id": ..., "monitors": [...]}, ...]` directly, no per-machine
   fan-out needed. `list_monitors` and `fx`/`fy` resolution needed no code
@@ -74,34 +74,34 @@ fixed:
   `test_input_control.py`/`test_mac_input_control.py` — 195 passing (was 170).
   Neither feature had any test coverage before this review.
 
-## 2026-08-23 — Add `journeycapture_mac_thinclient`, a second agent for macOS
+## 2026-08-23 — Add `journeydrive_mac_thinclient`, a second agent for macOS
 
 Built following `docs/THIN_AGENT_PLAYBOOK.md`'s own recipe for adding a new agent
 OS — the first real use of that playbook since it was written. The broker and MCP
 server needed **zero code changes**: both agents speak the identical wire protocol
 described in the playbook's §1, addressed independently by `machine_id`.
 
-- New top-level package `src/journeycapture_mac_thinclient/` (`capture.py`,
+- New top-level package `src/journeydrive_mac_thinclient/` (`capture.py`,
   `input_control.py`, `config.py`, `schemas.py`, `logging_setup.py`, `ws_client.py`,
-  `server.py`) — near-identical to `journeycapture_windows_thinclient`'s modules,
+  `server.py`) — near-identical to `journeydrive_windows_thinclient`'s modules,
   duplicated rather than imported (per the playbook's guidance) so the two agents
   stay independently buildable/testable, except `tls_pinning` which is genuinely
-  shared (imported from `journeycapture_windows_thinclient`, same as
-  `journeycapture_mcp.client` already does) since it's pure-stdlib logic with no
+  shared (imported from `journeydrive_windows_thinclient`, same as
+  `journeydrive_mcp.client` already does) since it's pure-stdlib logic with no
   OS-specific code.
-- **Corrected a stale assumption**: `journeycapture_windows_thinclient`'s docs
+- **Corrected a stale assumption**: `journeydrive_windows_thinclient`'s docs
   previously said `pynput`/`mss` are "Windows-only in practice." Verified live
   against a real Retina Mac during this work that both are genuinely
   cross-platform — `mss`'s macOS backend already reports monitor bounds and
   captures pixel data in real display pixels (matched `sct.grab(...)`'s actual
   image size exactly, no HiDPI "points vs. pixels" correction needed), and
   `pynput`'s reported cursor position falls in the same real-pixel coordinate
-  space `mss` reports. This means `journeycapture_mcp`'s `fx`/`fy` fractional
+  space `mss` reports. This means `journeydrive_mcp`'s `fx`/`fy` fractional
   coordinates (see the two entries below) work identically on this agent with no
   Mac-specific correction — confirmed, not assumed.
 - No new dependencies — `mss`/`pynput`/`pydantic`/`websockets` were already base
   `dependencies`, shared by both agents.
-- New console script `journeycapture-mac`, PyInstaller entry point
+- New console script `journeydrive-mac`, PyInstaller entry point
   `packaging/run_mac.py`, one-shot build script `scripts/mac_thinclient/build_mac.sh`
   (bash port of `build_windows.ps1`), and docs `docs/MACOS_BUILD.md`/
   `docs/MACOS_SMOKE_TEST.md` covering the one genuinely manual step: a one-time
@@ -111,10 +111,10 @@ described in the playbook's §1, addressed independently by `machine_id`.
   170 passing (was 137).
 - **Caught via an actual local build/run on a real Mac, not just unit tests**:
   `examples/config.example.json` explicitly pinned `"log_file":
-  "journeycapture.log"`, silently overriding the new `Config` default of
-  `journeycapture-mac.log` for anyone who copied the example unedited — removed
+  "journeydrive.log"`, silently overriding the new `Config` default of
+  `journeydrive-mac.log` for anyone who copied the example unedited — removed
   that line so each agent's own compiled-in default takes effect (Windows still
-  gets `journeycapture.log`, Mac now genuinely gets `journeycapture-mac.log`).
+  gets `journeydrive.log`, Mac now genuinely gets `journeydrive-mac.log`).
 
 ## 2026-08-23 — Add `preview_click` to verify a click before it commits
 
@@ -126,7 +126,7 @@ sometimes, and until now there was no way to check a guess before the real click
 committed.
 
 - New MCP tool `preview_click(machine, x=None, y=None, fx=None, fy=None,
-  monitor=None)` (`journeycapture_mcp/server.py`): takes the same coordinate
+  monitor=None)` (`journeydrive_mcp/server.py`): takes the same coordinate
   arguments as `click_mouse`, but instead of clicking, returns a fresh screenshot
   with a magenta crosshair drawn at the resolved pixel position — nothing on the
   target machine is touched. Reuses `_resolve_xy` for the coordinate math and the
@@ -161,7 +161,7 @@ explicitly decided against a stricter "hard requirement to start" alternative.
   remote control) and a thin client's `log_file` (would require live-swapping
   the active `RotatingFileHandler`'s target file, real complexity for a setting
   nobody's asked to centralize).
-- New `JourneyCaptureClient.set_timeout()` — a pushed `timeout` needs one extra
+- New `JourneyDriveClient.set_timeout()` — a pushed `timeout` needs one extra
   step beyond the existing `dataclasses.replace()` merge, since `client`'s own
   `httpx.AsyncClient` was already built with the old value at construction time.
   `httpx.Client.timeout` has a public setter, so this updates it directly rather
@@ -198,7 +198,7 @@ former over yet, and no reason to centralize the latter.
   way, per-call.
 - Broker config validation: every `machine_profiles` key must exist in `machines`;
   `screenshot` sub-objects are validated by reusing
-  `journeycapture_windows_thinclient.config.ScreenshotConfig` (same cross-package
+  `journeydrive_windows_thinclient.config.ScreenshotConfig` (same cross-package
   precedent as `schemas.py`); `log_level` is checked against
   `logging.getLevelNamesMapping()`; both `machine_profiles` entries and
   `mcp_profile` reject unknown keys.
@@ -219,7 +219,7 @@ TLS — deliberately the lightest-weight design that still fails closed. This is
 purely additive to the existing `api_key`/`machine_id` auth model, not a
 replacement for it.
 
-- New `journeycapture_windows_thinclient.tls_pinning` module: fetches the broker's
+- New `journeydrive_windows_thinclient.tls_pinning` module: fetches the broker's
   certificate via a raw probe connection, verifies its SHA-256 fingerprint with a
   constant-time comparison, then returns an `SSLContext` trusting that exact
   certificate for all real traffic — chosen over a per-connection verify callback
@@ -245,20 +245,20 @@ replacement for it.
 - `docs/THIN_AGENT_PLAYBOOK.md` documents the pinning requirement protocol-agnostically
   for any future non-Python agent.
 
-## 2026-08-21 — Renamed journeycapture_thinclient to journeycapture_windows_thinclient
+## 2026-08-21 — Renamed journeydrive_thinclient to journeydrive_windows_thinclient
 
 The package is, and always has been, Windows-only in practice (`pynput`/`mss` are
 Windows-only there) — the name now says so, ahead of a second, non-Windows agent
 being added per `docs/THIN_AGENT_PLAYBOOK.md`, so "thin client" alone no longer
-implies "the Windows one" by default. Pure rename: `src/journeycapture_thinclient/`
-→ `src/journeycapture_windows_thinclient/`, updated everywhere it's imported
-(`journeycapture_broker`'s reuse of its `schemas` module included),
-`pyproject.toml`'s `journeycapture` console-script target and
+implies "the Windows one" by default. Pure rename: `src/journeydrive_thinclient/`
+→ `src/journeydrive_windows_thinclient/`, updated everywhere it's imported
+(`journeydrive_broker`'s reuse of its `schemas` module included),
+`pyproject.toml`'s `journeydrive` console-script target and
 `[tool.uv.build-backend]` module list, `packaging/run.py`'s entry point import, and
-every doc/test reference. The `journeycapture` console-script name, the `.exe`
+every doc/test reference. The `journeydrive` console-script name, the `.exe`
 filename, and every wire-protocol/config-field name are unchanged — this only
 renames the Python package. 88 tests still pass. Older changelog entries below
-still say `journeycapture_thinclient`, since that was its name at the time.
+still say `journeydrive_thinclient`, since that was its name at the time.
 
 ## 2026-08-20 — Example-config relocation, MCP startup crash fix, version 0.3.0
 
@@ -269,9 +269,9 @@ still say `journeycapture_thinclient`, since that was its name at the time.
 - `.gitignore` now also covers `mcp_config.json`/`broker_config.json`/
   `thinclient_config.json` — ad hoc local configs used to test against a real
   broker/thin-client pair — alongside the pre-existing `config.json` entry.
-- Fixed a crash on every `journeycapture-mcp` startup: its one log line in `main()`
+- Fixed a crash on every `journeydrive-mcp` startup: its one log line in `main()`
   referenced `settings.host`/`settings.port`, attributes that don't exist on
-  `journeycapture_mcp.config.Settings` (only `broker_host`/`broker_port` do) — an
+  `journeydrive_mcp.config.Settings` (only `broker_host`/`broker_port` do) — an
   `AttributeError` before the server could even start listening.
 - Version bumped to `0.3.0`.
 
@@ -315,7 +315,7 @@ real issues, all fixed here:
   `test_stale_unregister_does_not_evict_newer_connection`.
 - **Silent exit on rejected handshake** (`ws_client.py`, `server.py`): a broker
   rejecting a thin client's `machine_id`/`api_key` used to just log an error and
-  return — `journeycapture.exe` would exit with code 0, indistinguishable from a
+  return — `journeydrive.exe` would exit with code 0, indistinguishable from a
   normal shutdown to anything watching the exit code. Now raises a
   `RegistrationRejected` exception that `main()` catches and turns into a `sys.exit(1)`
   with a clear stderr message.
@@ -361,7 +361,7 @@ so this phase's remaining scope was narrower than planned.
 Follow-up to phase 2: the five live-testing scripts (`live_check.py`,
 `get_screenshot.py`, `send_text.py`, `move_mouse.py`, `click_test.py`) still built
 requests directly against the retired thin-client REST shape — the last callers of
-that shape. Updated all five to the same pattern phase 2 applied to `journeycapture_mcp`.
+that shape. Updated all five to the same pattern phase 2 applied to `journeydrive_mcp`.
 
 - Each script: `--host`/`--port`/`--scheme`/`--api-key` (one machine) → `--broker-host`/
   `--broker-port`/`--broker-scheme`/`--machine` (one broker, many machines), with
@@ -377,14 +377,14 @@ that shape. Updated all five to the same pattern phase 2 applied to `journeycapt
 - `CLAUDE.md`'s "not yet updated for the broker" caveat removed now that all five
   route through it; `click_test.py` (previously undocumented) added to the script list.
 
-## 2026-08-20 — journeycapture_mcp routes through the broker (phase 2/4)
+## 2026-08-20 — journeydrive_mcp routes through the broker (phase 2/4)
 
-Follow-up to the broker/phase 1 entry below: updated `journeycapture_mcp` to talk to
+Follow-up to the broker/phase 1 entry below: updated `journeydrive_mcp` to talk to
 the broker's `/machines/{id}/...` HTTP API instead of one thin client directly.
 
 - `config.py`: `host`/`port`/`scheme`/`api_key` (one machine) → `broker_host`/
   `broker_port`/`broker_scheme`/`broker_api_key` (one broker, many machines behind
-  it). Matching env var renames (`JOURNEYCAPTURE_HOST` → `_BROKER_HOST`, etc.).
+  it). Matching env var renames (`JOURNEYDRIVE_HOST` → `_BROKER_HOST`, etc.).
 - `client.py`: every method takes a `machine` id as its first argument now; new
   `list_machines()`.
 - `server.py`: every tool except the new `list_machines` takes a required `machine`
@@ -403,7 +403,7 @@ the broker's `/machines/{id}/...` HTTP API instead of one thin client directly.
 
 ## 2026-08-20 — Add a broker between MCP and the thin client (phase 1/4)
 
-Prompted by discussing multi-machine scaling: `journeycapture_mcp` talked directly to
+Prompted by discussing multi-machine scaling: `journeydrive_mcp` talked directly to
 one thin client, so controlling N Windows boxes meant N separate MCP server
 processes, each hardcoded to one machine. Decided to prep the architecture for scale
 via a broker: MCP↔broker over HTTP (mirroring the thin client's REST shape,
@@ -414,13 +414,13 @@ regardless of NAT/firewall topology. The thin client's REST API is retired outri
 not kept alongside the new path — a deliberate, more disruptive choice over a
 transition period.
 
-- New `journeycapture_broker` package: `ConnectionRegistry` correlates broker→machine
+- New `journeydrive_broker` package: `ConnectionRegistry` correlates broker→machine
   websocket requests with the HTTP call awaiting them, by request id.
 - Screenshots go over the wire as a JSON metadata frame immediately followed by a
   **raw binary frame** — no base64 — safe because each connection is processed
   sequentially on both ends, so a binary frame unambiguously follows the response
   that preceded it.
-- `journeycapture_thinclient`: removed `api.py`/`routes/`/`security.py`/the uvicorn
+- `journeydrive_thinclient`: removed `api.py`/`routes/`/`security.py`/the uvicorn
   server; new `ws_client.py` dispatches incoming messages to the same
   `input_control`/`capture` functions the old routes called — unchanged, so the
   keystroke pacing, concurrency lock, auto-release, and audit logging from earlier
@@ -447,18 +447,18 @@ schema layer: `MouseClickRequest` now has a `model_validator` requiring `x`/`y`
 together or both omitted, returning a clear 422 instead. 3 new tests (partial pair
 rejected, neither given is fine, both given is fine) — 68 tests total, up from 65.
 Like the earlier keystroke-pacing and audit-logging fixes, this needs a Windows exe
-rebuild+republish to actually take effect — it's a `journeycapture_thinclient` change,
-not `journeycapture_mcp`.
+rebuild+republish to actually take effect — it's a `journeydrive_thinclient` change,
+not `journeydrive_mcp`.
 
 ## 2026-08-19 — Cap and prune saved screenshots
 
 Found during a broader "what else should I know about" audit: `save_screenshots`
 wrote a new file on every `take_screenshot` call with nothing ever removing one,
-unlike `journeycapture.log`/`journeycapture-mcp.log` which both rotate. Left running,
+unlike `journeydrive.log`/`journeydrive-mcp.log` which both rotate. Left running,
 `screenshot_dir` would grow forever.
 
 - New `Settings.max_saved_screenshots` (default `100`), configurable via
-  `scripts/config.json`-style file key or `JOURNEYCAPTURE_MCP_MAX_SAVED_SCREENSHOTS`
+  `scripts/config.json`-style file key or `JOURNEYDRIVE_MCP_MAX_SAVED_SCREENSHOTS`
   env var. `0` or negative disables pruning (keep everything).
 - After each save, oldest files beyond the cap are deleted (sorted by filename, which
   is already chronological since it's a UTC timestamp) — a count-based cap, simpler
@@ -475,7 +475,7 @@ unlike `journeycapture.log`/`journeycapture-mcp.log` which both rotate. Left run
 overwritten) was redundant now that `scripts/config.json` already has
 `screenshot_dir` from the MCP server's local-saving feature added just before this.
 Removed `output_file`; the script now saves into `screenshot_dir` with a timestamped
-filename (matching `journeycapture_mcp/server.py`'s `_save_screenshot` naming format
+filename (matching `journeydrive_mcp/server.py`'s `_save_screenshot` naming format
 exactly), so manually-fetched screenshots and MCP-auto-saved ones land in one shared
 folder instead of two different places with two different config keys. `--out` still
 works as a CLI-only exact-path override for one-off cases; `--dir` is new for
@@ -490,7 +490,7 @@ session). Off by default, enabled for this setup right now.
 
 - New `Settings` fields `save_screenshots` (default `False`) and `screenshot_dir`
   (default `"screenshots"`), configurable via `scripts/config.json`-style file keys
-  or `JOURNEYCAPTURE_MCP_SAVE_SCREENSHOTS`/`JOURNEYCAPTURE_MCP_SCREENSHOT_DIR` env
+  or `JOURNEYDRIVE_MCP_SAVE_SCREENSHOTS`/`JOURNEYDRIVE_MCP_SCREENSHOT_DIR` env
   vars.
 - `build_server` now takes `settings` alongside `client` (signature change — the
   `server` fixture in `tests/test_mcp_server.py` updated to match).
@@ -517,7 +517,7 @@ actually verify. Treated the two successful clicks as luck, not a validated
 technique, since the same failure shape (assumed number, no way to confirm it) was
 already what caused the original bug.
 
-- `journeycapture_mcp.server`'s `move_mouse` and `click_mouse` tools now accept
+- `journeydrive_mcp.server`'s `move_mouse` and `click_mouse` tools now accept
   `fx`/`fy` (0.0–1.0, a fraction of the target monitor's width/height) as an
   alternative to pixel `x`/`y`, plus `monitor` to pick which monitor they're relative
   to. Resolved server-side via a new `_resolve_xy` helper that calls
@@ -566,8 +566,8 @@ position, so every click landed on empty desktop.
 - Re-opened Chrome live using the already-verified-correct coordinates from
   `click_test.py`'s earlier run.
 - Added an explicit warning to the docstrings most likely to be read right before
-  computing coordinates — `journeycapture_mcp/server.py`'s `list_monitors`/
-  `take_screenshot` tools and `journeycapture_thinclient/routes/screenshot.py`'s
+  computing coordinates — `journeydrive_mcp/server.py`'s `list_monitors`/
+  `take_screenshot` tools and `journeydrive_thinclient/routes/screenshot.py`'s
   `screenshot_monitors` route — to always read the real width/height from the
   response rather than assuming a resolution.
 - New `CLAUDE.md` section ("Never assume the screen resolution") documenting this
@@ -583,8 +583,8 @@ likely real explanation (two separate single-click calls arriving too far apart 
 register as an OS-level double-click, rather than one `clicks=2` call) couldn't be
 confirmed either way.
 
-- `journeycapture_mcp` now logs every tool call (name + arguments) before executing
-  it, to both console and a new rotating `journeycapture-mcp.log` file
+- `journeydrive_mcp` now logs every tool call (name + arguments) before executing
+  it, to both console and a new rotating `journeydrive-mcp.log` file
   (`logging_setup.py`, same pattern as the thin client's own). `type_text` logs the
   character count only, never the typed text. This is what to check next time
   something looks off — e.g. whether a click arrived as one `clicks=2` call or two
@@ -597,13 +597,13 @@ confirmed either way.
 
 ## 2026-08-19 — MCP server: --config file, no more required env vars
 
-`journeycapture_mcp/config.py`'s `load_settings()` now accepts an optional
-`config_path`; `journeycapture-mcp --config scripts/config.json` reads host/api_key
+`journeydrive_mcp/config.py`'s `load_settings()` now accepts an optional
+`config_path`; `journeydrive-mcp --config scripts/config.json` reads host/api_key
 straight from the same file the live-testing scripts already use, so there's nothing
 to export by hand. Recognizes the same key names (`host`, `api_key`, `port`,
 `scheme`, `timeout`) plus two new optional ones (`mcp_host`, `mcp_port`) for
 overriding this server's own bind address from the file too. The
-`JOURNEYCAPTURE_*` environment variables still work exactly as before — they're the
+`JOURNEYDRIVE_*` environment variables still work exactly as before — they're the
 fallback when `--config` isn't given, not replaced by it. Added `tests/test_mcp_config.py`
 (8 tests, previously untested) covering both paths — 53 tests total, up from 45.
 
@@ -611,17 +611,17 @@ fallback when `--config` isn't given, not replaced by it. Added `tests/test_mcp_
 
 Two changes:
 
-- Renamed `src/journeycapture/` to `src/journeycapture_thinclient/` (all internal
+- Renamed `src/journeydrive/` to `src/journeydrive_thinclient/` (all internal
   imports, test mock-patch targets, and `CLAUDE.md` updated to match), to disambiguate
-  it from `journeycapture_mcp` now that both packages live in this repo. Scoped to the
-  importable package only — the distribution name, the `journeycapture` CLI command,
+  it from `journeydrive_mcp` now that both packages live in this repo. Scoped to the
+  importable package only — the distribution name, the `journeydrive` CLI command,
   the built exe name, and the log filename default are all unchanged.
-- `journeycapture_mcp` now speaks **streamable HTTP** instead of stdio. Previously the
+- `journeydrive_mcp` now speaks **streamable HTTP** instead of stdio. Previously the
   MCP client (VS Code) launched and owned the process automatically; the desired
-  workflow instead was starting `journeycapture-mcp` by hand and pointing `.mcp.json`
+  workflow instead was starting `journeydrive-mcp` by hand and pointing `.mcp.json`
   at it, which stdio can't do — there's no "already running" state to point at with
-  stdio. Binds `127.0.0.1:8000` by default (new `JOURNEYCAPTURE_MCP_HOST`/
-  `_MCP_PORT` env vars, deliberately separate from `JOURNEYCAPTURE_HOST`/`_PORT`,
+  stdio. Binds `127.0.0.1:8000` by default (new `JOURNEYDRIVE_MCP_HOST`/
+  `_MCP_PORT` env vars, deliberately separate from `JOURNEYDRIVE_HOST`/`_PORT`,
   which mean the Windows box's address, not this server's own). Loopback-only by
   default is a deliberate mitigation, not an accident: this server holds the real
   thin-client API key internally and has no auth of its own at the MCP/HTTP layer, so
@@ -632,9 +632,9 @@ Two changes:
 
 ## 2026-08-19 — Add the MCP server
 
-New package `src/journeycapture_mcp/`, exposing the REST API as MCP tools. Runs on
+New package `src/journeydrive_mcp/`, exposing the REST API as MCP tools. Runs on
 the controller machine (wherever the MCP client is), separately from
-`journeycapture.exe` on the Windows box — the two now genuinely run on different
+`journeydrive.exe` on the Windows box — the two now genuinely run on different
 computers, talking over the same HTTP API `scripts/*.py` already exercised.
 
 - One MCP tool per REST endpoint (`health_check`, `list_monitors`, `take_screenshot`,
@@ -643,11 +643,11 @@ computers, talking over the same HTTP API `scripts/*.py` already exercised.
   pre-MCP-readiness pass below — same reference info, one layer removed.
   `take_screenshot` returns MCP image content (base64-encoded), the one endpoint
   needing real translation rather than a passthrough.
-- Config via environment variables (`JOURNEYCAPTURE_HOST`, `_PORT`, `_SCHEME`,
+- Config via environment variables (`JOURNEYDRIVE_HOST`, `_PORT`, `_SCHEME`,
   `_API_KEY`), read once at startup with a fail-fast error message if host/api_key
-  are missing — verified: `journeycapture-mcp` with them unset exits 1 with a clear
+  are missing — verified: `journeydrive-mcp` with them unset exits 1 with a clear
   message, not a stack trace.
-- New `journeycapture-mcp` terminal command (`[project.scripts]`), speaking MCP over
+- New `journeydrive-mcp` terminal command (`[project.scripts]`), speaking MCP over
   stdio — meant to be spawned by an MCP client (Claude Code, Claude Desktop), not run
   interactively.
 - The MCP SDK lives behind a new `mcp` optional-dependency group
@@ -725,7 +725,7 @@ gaps found in that review:
 - `scripts/build_windows.ps1` (built on the Windows box, in its own Claude Code
   session): one-shot build — installs `uv` if missing, `uv sync`, runs the test suite
   (aborts the build on failure, `-SkipTests` to bypass), builds a version-named
-  `dist/journeycapture-<version>.exe` via PyInstaller, copies
+  `dist/journeydrive-<version>.exe` via PyInstaller, copies
   `config.example.json` → `dist/config.json` if one isn't already there.
 
 ## 2026-08-19 — `52dec80` Live testing scripts; fix dropped keystrokes

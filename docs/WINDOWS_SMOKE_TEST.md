@@ -1,6 +1,6 @@
 # Manual smoke test (Windows only)
 
-This exercises `journeycapture.exe` through a running broker (`docs/BROKER.md`) — the
+This exercises `journeydrive.exe` through a running broker (`docs/BROKER.md`) — the
 thin client no longer accepts inbound connections directly, so a broker must be up and
 reachable from both the Windows box (outbound) and wherever you run the checks from.
 The broker can run anywhere reachable by both sides; it doesn't need to be on the
@@ -8,7 +8,7 @@ Windows box itself.
 
 ## Automated checks
 
-Once a broker is running and `journeycapture.exe` on the Windows box is configured
+Once a broker is running and `journeydrive.exe` on the Windows box is configured
 with that broker's `broker_host`/`broker_port` and a `machine_id`/`api_key` registered
 in the broker's own config, run
 [`scripts/testing/live_check.py`](../scripts/testing/live_check.py) from any machine
@@ -34,10 +34,10 @@ AV flags on first launch — those still need the manual checks below.
 
 These require a real Windows desktop session and cannot be automated from macOS.
 
-1. Copy `examples/config.example.json` to `config.json` next to `journeycapture.exe`, set
+1. Copy `examples/config.example.json` to `config.json` next to `journeydrive.exe`, set
    `broker_host`/`broker_port` to the broker, and set `machine_id`/`api_key` to match
    an entry in the broker's own `machines` config.
-2. Launch `journeycapture.exe`. Confirm `journeycapture.log` shows a successful
+2. Launch `journeydrive.exe`. Confirm `journeydrive.log` shows a successful
    connection and handshake to the broker (not a listening socket — this machine only
    ever connects out).
 3. Confirm the machine shows up: `GET /machines` on the broker (with the broker's
@@ -64,10 +64,10 @@ These require a real Windows desktop session and cannot be automated from macOS.
     "delete"]}` behaves as an OS-level combo (careful — this may lock the session;
     test last).
 13. Confirm UIPI behavior: input to an elevated window is blocked unless
-    `journeycapture.exe` itself is run as Administrator.
+    `journeydrive.exe` itself is run as Administrator.
 14. Note any antivirus flag on first launch (no Firewall prompt is expected anymore —
     this machine makes only outbound connections to the broker).
-15. Stop the broker (or disconnect the network) while `journeycapture.exe` is running,
+15. Stop the broker (or disconnect the network) while `journeydrive.exe` is running,
     then restore it → confirm the log shows a reconnect-with-backoff rather than the
     exe exiting, and that `GET /machines` shows it connected again afterward.
 

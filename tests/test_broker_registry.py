@@ -8,8 +8,8 @@ import pytest
 
 pytest.importorskip("fastapi")  # controller-side-only extra; not installed for the Windows thin-client build
 
-from journeycapture_broker.config import Settings
-from journeycapture_broker.registry import ConnectionRegistry, MachineError, MachineNotConnected, MachineTimeout
+from journeydrive_broker.config import Settings
+from journeydrive_broker.registry import ConnectionRegistry, MachineError, MachineNotConnected, MachineTimeout
 
 
 @pytest.fixture

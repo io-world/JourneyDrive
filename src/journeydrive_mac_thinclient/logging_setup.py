@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from logging.handlers import RotatingFileHandler
 
-from journeycapture_mac_thinclient.config import Config
+from journeydrive_mac_thinclient.config import Config
 
 
 def configure_logging(config: Config) -> None:

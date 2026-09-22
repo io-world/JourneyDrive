@@ -24,7 +24,7 @@ class Config(BaseModel, extra="forbid"):
     broker_cert_fingerprint: str | None = Field(default=None, description="SHA-256 fingerprint (hex, colons optional) of the broker's TLS certificate. Required when broker_tls is true.")
     screenshot: ScreenshotConfig = Field(default_factory=ScreenshotConfig)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    log_file: str = "journeycapture.log"
+    log_file: str = "journeydrive-mac.log"
 
     @model_validator(mode="after")
     def _check_tls_fingerprint_pair(self) -> "Config":
@@ -55,7 +55,7 @@ def default_config_path() -> Path:
 def resolve_config_path(cli_path: str | None) -> Path:
     if cli_path:
         return Path(cli_path)
-    env_path = os.environ.get("JOURNEYCAPTURE_CONFIG")
+    env_path = os.environ.get("JOURNEYDRIVE_CONFIG")
     if env_path:
         return Path(env_path)
     return default_config_path()

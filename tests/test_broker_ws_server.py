@@ -11,8 +11,8 @@ import pytest
 
 pytest.importorskip("fastapi")  # controller-side-only extra; not installed for the Windows thin-client build
 
-from journeycapture_broker.config import Settings
-from journeycapture_broker.ws_server import _build_server_ssl_context, _make_handler
+from journeydrive_broker.config import Settings
+from journeydrive_broker.ws_server import _build_server_ssl_context, _make_handler
 
 requires_openssl = pytest.mark.skipif(shutil.which("openssl") is None, reason="openssl not available")
 

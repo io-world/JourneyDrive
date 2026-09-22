@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from websockets.asyncio.server import ServerConnection
 
-from journeycapture_broker.config import Settings
+from journeydrive_broker.config import Settings
 
 logger = logging.getLogger(__name__)
 

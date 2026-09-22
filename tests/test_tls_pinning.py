@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from journeycapture_windows_thinclient.tls_pinning import (
+from journeydrive_windows_thinclient.tls_pinning import (
     CertificateFingerprintMismatch,
     fetch_pinned_ssl_context,
     normalize_fingerprint,

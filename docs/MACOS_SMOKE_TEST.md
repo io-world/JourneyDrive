@@ -1,6 +1,6 @@
 # Manual smoke test (macOS thin client)
 
-This exercises `journeycapture-mac` through a running broker (`docs/BROKER.md`) —
+This exercises `journeydrive-mac` through a running broker (`docs/BROKER.md`) —
 same as the Windows agent, it only ever connects *out* to the broker, so a broker
 must be up and reachable from both the Mac (outbound) and wherever you run the
 checks from. The broker can run anywhere reachable by both sides; it doesn't need to
@@ -8,7 +8,7 @@ be on the Mac itself.
 
 ## Automated checks
 
-Once a broker is running and `journeycapture-mac` on the Mac is configured with that
+Once a broker is running and `journeydrive-mac` on the Mac is configured with that
 broker's `broker_host`/`broker_port` and a `machine_id`/`api_key` registered in the
 broker's own config, run
 [`scripts/testing/live_check.py`](../scripts/testing/live_check.py) from any machine
@@ -40,10 +40,10 @@ These require a real macOS desktop session and cannot be automated from another 
    Settings → Privacy & Security → Accessibility, and → Screen Recording) are in
    place for whatever process is running the agent.
 2. Copy `examples/config.example.json` to `config.json` next to
-   `journeycapture-mac-<version>`, set `broker_host`/`broker_port` to the broker,
+   `journeydrive-mac-<version>`, set `broker_host`/`broker_port` to the broker,
    and set `machine_id`/`api_key` to match an entry in the broker's own `machines`
    config.
-3. Launch `journeycapture-mac-<version>`. Confirm `journeycapture-mac.log` shows a
+3. Launch `journeydrive-mac-<version>`. Confirm `journeydrive-mac.log` shows a
    successful connection and handshake to the broker (not a listening socket — this
    machine only ever connects out).
 4. Confirm the machine shows up: `GET /machines` on the broker (with the broker's
@@ -78,7 +78,7 @@ These require a real macOS desktop session and cannot be automated from another 
     quit an app with unsaved work; test last, and against something disposable).
 14. Note any Gatekeeper prompt on first launch of an unsigned/unnotarized binary
     (see `docs/MACOS_BUILD.md`'s "Known friction").
-15. Stop the broker (or disconnect the network) while `journeycapture-mac-<version>`
+15. Stop the broker (or disconnect the network) while `journeydrive-mac-<version>`
     is running, then restore it → confirm the log shows a reconnect-with-backoff
     rather than the process exiting, and that `GET /machines` shows it connected
     again afterward.

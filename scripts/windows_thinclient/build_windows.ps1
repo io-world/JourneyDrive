@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    One-shot Windows build script for journeycapture.exe
+    One-shot Windows build script for journeydrive.exe
 .PARAMETER SkipTests
     Skip the pytest run before building.
 .PARAMETER OpenDist
@@ -78,7 +78,7 @@ if (-not $SkipTests) {
 # version bump.
 $Version = uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
 if (-not $Version) { Fail "Could not read package version." }
-$ExeName = "journeycapture-$Version"
+$ExeName = "journeydrive-$Version"
 Step "Building dist\${ExeName}.exe (PyInstaller)"
 # Remove stale spec so PyInstaller always uses our explicit flags
 Remove-Item -Path "$Root\${ExeName}.spec" -ErrorAction SilentlyContinue

@@ -21,7 +21,7 @@ from pathlib import Path
 
 import httpx
 
-from journeycapture_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
+from journeydrive_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
 
 TEXT = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n "
 
@@ -45,16 +45,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--machine", default=config.get("machine_id"), help="machine_id to target, as configured on the broker")
     parser.add_argument(
         "--api-key",
-        default=config.get("broker_api_key") or os.environ.get("JOURNEYCAPTURE_BROKER_API_KEY"),
-        help=f"The broker's own api_key. Defaults to {CONFIG_PATH.name}'s broker_api_key, then the JOURNEYCAPTURE_BROKER_API_KEY env var",
+        default=config.get("broker_api_key") or os.environ.get("JOURNEYDRIVE_BROKER_API_KEY"),
+        help=f"The broker's own api_key. Defaults to {CONFIG_PATH.name}'s broker_api_key, then the JOURNEYDRIVE_BROKER_API_KEY env var",
     )
     parser.add_argument("--text", default=TEXT, help="Text to type on the remote machine")
     parser.add_argument("--timeout", type=float, default=config.get("timeout", 10.0))
     parser.add_argument(
         "--broker-cert-fingerprint",
-        default=config.get("broker_cert_fingerprint") or os.environ.get("JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT"),
+        default=config.get("broker_cert_fingerprint") or os.environ.get("JOURNEYDRIVE_BROKER_CERT_FINGERPRINT"),
         help=f"SHA-256 fingerprint of the broker's TLS certificate. Required when --broker-scheme https. "
-        f"Defaults to {CONFIG_PATH.name}'s broker_cert_fingerprint, then the JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT env var",
+        f"Defaults to {CONFIG_PATH.name}'s broker_cert_fingerprint, then the JOURNEYDRIVE_BROKER_CERT_FINGERPRINT env var",
     )
     args = parser.parse_args()
 
@@ -64,12 +64,12 @@ def parse_args() -> argparse.Namespace:
         parser.error(f"--machine is required (or set 'machine_id' in {CONFIG_PATH.name})")
     if not args.api_key:
         parser.error(
-            f"--api-key is required (or set 'broker_api_key' in {CONFIG_PATH.name}, or JOURNEYCAPTURE_BROKER_API_KEY)"
+            f"--api-key is required (or set 'broker_api_key' in {CONFIG_PATH.name}, or JOURNEYDRIVE_BROKER_API_KEY)"
         )
     if args.broker_scheme == "https" and not args.broker_cert_fingerprint:
         parser.error(
             f"--broker-cert-fingerprint is required when --broker-scheme https "
-            f"(or set 'broker_cert_fingerprint' in {CONFIG_PATH.name}, or JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT)"
+            f"(or set 'broker_cert_fingerprint' in {CONFIG_PATH.name}, or JOURNEYDRIVE_BROKER_CERT_FINGERPRINT)"
         )
     return args
 

@@ -8,8 +8,8 @@ import ssl
 import websockets
 from websockets.asyncio.server import ServerConnection, serve
 
-from journeycapture_broker.config import Settings
-from journeycapture_broker.registry import ConnectionRegistry
+from journeydrive_broker.config import Settings
+from journeydrive_broker.registry import ConnectionRegistry
 
 logger = logging.getLogger(__name__)
 

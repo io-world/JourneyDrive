@@ -22,7 +22,7 @@ from pathlib import Path
 import httpx
 from PIL import Image
 
-from journeycapture_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
+from journeydrive_windows_thinclient.tls_pinning import fetch_pinned_ssl_context
 
 
 @dataclass
@@ -47,14 +47,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--machine", required=True, help="machine_id to test, as configured on the broker")
     parser.add_argument(
         "--api-key",
-        default=os.environ.get("JOURNEYCAPTURE_BROKER_API_KEY"),
-        help="The broker's own api_key. Defaults to the JOURNEYCAPTURE_BROKER_API_KEY env var",
+        default=os.environ.get("JOURNEYDRIVE_BROKER_API_KEY"),
+        help="The broker's own api_key. Defaults to the JOURNEYDRIVE_BROKER_API_KEY env var",
     )
     parser.add_argument(
         "--broker-cert-fingerprint",
-        default=os.environ.get("JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT"),
+        default=os.environ.get("JOURNEYDRIVE_BROKER_CERT_FINGERPRINT"),
         help="SHA-256 fingerprint of the broker's TLS certificate. Required when --broker-scheme https. "
-        "Defaults to the JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT env var",
+        "Defaults to the JOURNEYDRIVE_BROKER_CERT_FINGERPRINT env var",
     )
     parser.add_argument("--out-dir", default=".", help="Where to save the fetched screenshot")
     parser.add_argument("--timeout", type=float, default=10.0)
@@ -71,11 +71,11 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
     if not args.api_key:
-        parser.error("--api-key is required (or set JOURNEYCAPTURE_BROKER_API_KEY)")
+        parser.error("--api-key is required (or set JOURNEYDRIVE_BROKER_API_KEY)")
     if args.broker_scheme == "https" and not args.broker_cert_fingerprint:
         parser.error(
             "--broker-cert-fingerprint is required when --broker-scheme https "
-            "(or set JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT)"
+            "(or set JOURNEYDRIVE_BROKER_CERT_FINGERPRINT)"
         )
     return args
 
@@ -187,8 +187,8 @@ def check_mouse(client: httpx.Client, headers: dict, monitors: list[dict], resul
 
 
 def check_keyboard(client: httpx.Client, headers: dict, results: Results) -> None:
-    print("POST .../keyboard/type ('journeycapture-live-check')")
-    text = "journeycapture-live-check"
+    print("POST .../keyboard/type ('journeydrive-live-check')")
+    text = "journeydrive-live-check"
     try:
         resp = client.post("/keyboard/type", headers=headers, json={"text": text})
         body = resp.json()

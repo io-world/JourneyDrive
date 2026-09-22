@@ -1,10 +1,10 @@
 # Building a new thin agent for this broker
 
-`journeycapture_broker` is already built, already shipped, and doesn't care what OS
+`journeydrive_broker` is already built, already shipped, and doesn't care what OS
 or language connects to it — the only contract is the WebSocket protocol below. This
 is the recipe for writing a **new agent** — a Linux box, a Mac, a second Windows
 machine, or something that isn't even Python — that connects to the *same* broker
-your MCP server already talks to, alongside (or instead of) `journeycapture_windows_thinclient`.
+your MCP server already talks to, alongside (or instead of) `journeydrive_windows_thinclient`.
 
 The one invariant that makes this whole architecture work: **the agent always
 connects out to the broker and stays connected. It never listens on a port.** That's
@@ -13,7 +13,7 @@ directly, and it's non-negotiable for any new agent you write — don't build a
 variant that has the broker connect to the agent instead.
 
 ```
-MCP server  --HTTP-->  journeycapture_broker  <--WebSocket--  journeycapture_windows_thinclient (Windows)
+MCP server  --HTTP-->  journeydrive_broker  <--WebSocket--  journeydrive_windows_thinclient (Windows)
                                                <--WebSocket--  your new agent (Linux/Mac/whatever)
 ```
 
@@ -24,9 +24,9 @@ or differently-OS'd agent.
 
 ## 1. The wire protocol (exact, not illustrative)
 
-This is what `journeycapture_windows_thinclient/ws_client.py` actually does, and what any
+This is what `journeydrive_windows_thinclient/ws_client.py` actually does, and what any
 new agent must reproduce byte-for-byte in its handshake/dispatch shape — the broker
-side (`journeycapture_broker/ws_server.py`) is not going to change to accommodate a
+side (`journeydrive_broker/ws_server.py`) is not going to change to accommodate a
 different shape.
 
 **Connect and handshake:**
@@ -101,7 +101,7 @@ same connection with either:
 ```
 
 **Method table to implement** (`method` → expected `params` → `result`), taken
-directly from `journeycapture_windows_thinclient/schemas.py`. Monitor layout is
+directly from `journeydrive_windows_thinclient/schemas.py`. Monitor layout is
 *not* in this table — it's reported once via the "Monitor report" frame above, not
 a live-queryable method; don't implement a `screenshot_monitors` dispatch handler.
 
@@ -153,7 +153,7 @@ protocol-agnostically because it applies regardless of implementation language: 
 the certificate the broker presents, compare its fingerprint to the configured
 value, fail closed (never fall back to an unpinned or plaintext connection) on a
 mismatch, and only then proceed to send credentials. See
-`journeycapture_windows_thinclient/tls_pinning.py` for a reference implementation
+`journeydrive_windows_thinclient/tls_pinning.py` for a reference implementation
 (Python stdlib `ssl`) of exactly this, including why a per-connection verify
 callback isn't the right mechanism.
 
@@ -161,7 +161,7 @@ callback isn't the right mechanism.
 
 Everything in §1 is fixed regardless of target OS. What actually changes per
 platform is the *capability layer* — the equivalent of
-`journeycapture_windows_thinclient/capture.py` (screenshots) and `input_control.py`
+`journeydrive_windows_thinclient/capture.py` (screenshots) and `input_control.py`
 (mouse/keyboard) — since those are the modules that call into OS-specific APIs
 (`mss`/`pynput` on Windows).
 
@@ -199,7 +199,7 @@ as-is — that part has zero OS-specific code in it today and shouldn't grow any
 Whatever you pick, the monitor layout reported in the handshake-time `"monitors"`
 frame (§1) — real `width`/`height`/`left`/`top` per monitor — must be genuinely
 accurate — every downstream fractional-coordinate (`fx`/`fy`) calculation in
-`journeycapture_mcp` depends on this being correct, and there is no cross-check
+`journeydrive_mcp` depends on this being correct, and there is no cross-check
 that catches it being subtly wrong (see the resolution-assumption pitfall in §4
 of this doc, and `CLAUDE.md`'s "Never assume the screen resolution" section for
 the real incident this protects against).
@@ -209,7 +209,7 @@ the real incident this protects against).
 These aren't OS-specific and there's no reason a new agent should relax any of them:
 
 - Fail fast with a specific, actionable error message on a missing/invalid config
-  field — see `journeycapture_windows_thinclient/config.py`'s `Config` model
+  field — see `journeydrive_windows_thinclient/config.py`'s `Config` model
   (`extra="forbid"`, `api_key` minimum length 16, `x`/`y` must be given together)
   for the exact validation shape to match; a new agent's config should require the
   same fields (`broker_host`, `broker_port`, `machine_id`, `api_key`) so
@@ -221,7 +221,7 @@ These aren't OS-specific and there's no reason a new agent should relax any of t
 - Log every dispatched command (method + enough params to debug, via the same
   privacy carve-out `keyboard_type` uses: log the character *count*, never the
   text) through the same rotating-file-plus-console setup style as
-  `journeycapture_windows_thinclient/logging_setup.py`. Don't log `health` — it's a
+  `journeydrive_windows_thinclient/logging_setup.py`. Don't log `health` — it's a
   liveness ping, not a command.
 - `click_mouse`/`send_keys`'s `action="down"`/`"press"` needs the same
   auto-release-after-N-seconds safety net `input_control.py` already has for
@@ -262,11 +262,11 @@ equally to a Linux or Mac agent, not just the Windows one.
 ## 6. Starter prompt for an LLM
 
 > I want to write a new agent that connects to this repo's existing
-> `journeycapture_broker`, targeting `<Linux/macOS/other>`, following
+> `journeydrive_broker`, targeting `<Linux/macOS/other>`, following
 > `docs/THIN_AGENT_PLAYBOOK.md`. Reuse the wire protocol in its §1 exactly — don't
 > change the broker or the MCP server. Implement `capture`/`input_control`
 > equivalents for `<target OS>` per §2, wire them into a dispatch loop that
-> reproduces `journeycapture_windows_thinclient/ws_client.py`'s handshake/reconnect/
+> reproduces `journeydrive_windows_thinclient/ws_client.py`'s handshake/reconnect/
 > dispatch logic, and carry over every item in §3 unchanged. Read `CLAUDE.md` for
 > the full pitfall list in §4 before writing the capability layer. Stop after the
 > capability layer (before wiring up the websocket loop) so I can review it first.

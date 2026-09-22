@@ -9,8 +9,8 @@ Building the macOS agent instead? See [MACOS_BUILD.md](MACOS_BUILD.md).
 ## 0. Get the code onto the Windows machine
 
 ```powershell
-git clone https://github.com/io-world/journeycapture.git
-cd journeycapture
+git clone https://github.com/io-world/journeydrive.git
+cd journeydrive
 ```
 
 (Or `git pull` if you already have a checkout there.)
@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File scripts\thinclient\build_windows.ps1
 
 This does everything through step 6 below in one command: installs `uv` if it's
 missing, runs `uv sync`, runs the test suite (`uv run pytest -q`, aborting the build on
-failure — pass `-SkipTests` to bypass), builds `dist\journeycapture-<version>.exe` with
+failure — pass `-SkipTests` to bypass), builds `dist\journeydrive-<version>.exe` with
 PyInstaller (version read straight from `pyproject.toml`'s `[project].version` via
 Python's `tomllib`, so the exe name always matches the source file even if `uv sync`
 hasn't reinstalled since a version bump), and copies `examples\config.example.json` →
@@ -35,7 +35,7 @@ directory (or `system32` if launched some other way), not the repo — `cd` into
 repo first, or the script/`.venv` paths below won't resolve:
 
 ```powershell
-cd "C:\Users\me\OneDrive\Desktop\JourneyCapture"
+cd "C:\Users\me\OneDrive\Desktop\JourneyDrive"
 .\scripts\thinclient\build_windows.ps1
 ```
 
@@ -78,14 +78,14 @@ expected on Windows, not a problem.
 ## 5. Build the executable (manual)
 
 ```powershell
-uv run pyinstaller --onefile --console --name journeycapture packaging/run.py
+uv run pyinstaller --onefile --console --name journeydrive packaging/run.py
 ```
 
 - `--console` (not `--windowed`) is intentional for the first build, so stdout/stderr
   are visible if something goes wrong at startup. Switch to `--windowed` later once
-  file logging (`journeycapture.log`) has been proven sufficient on its own.
-- This produces `dist\journeycapture.exe`, plus a `build\` scratch directory and a
-  generated `journeycapture.spec` in the repo root — both are gitignored/disposable.
+  file logging (`journeydrive.log`) has been proven sufficient on its own.
+- This produces `dist\journeydrive.exe`, plus a `build\` scratch directory and a
+  generated `journeydrive.spec` in the repo root — both are gitignored/disposable.
 - If mouse/keyboard control or screenshots fail with an import error at runtime,
   `pynput` ships its own PyInstaller hook and should Just Work; `mss` needs no special
   hook (pure `ctypes` against `user32`/`gdi32`). Otherwise add the missing module
@@ -113,19 +113,19 @@ the system.
 
 ```powershell
 cd dist
-.\journeycapture-<version>.exe
+.\journeydrive-<version>.exe
 ```
 
 This machine only ever connects *out* to the broker (a websocket client, not a
 listening server), so there's no inbound Firewall prompt to expect anymore — confirm
-it instead by checking `journeycapture.log` next to the exe for a successful broker
+it instead by checking `journeydrive.log` next to the exe for a successful broker
 connection, and `GET /machines` on the broker's HTTP API for this `machine_id`
 showing up as connected.
 
 ## 8. Publish a release (optional)
 
 ```powershell
-gh release create v<version> "dist\journeycapture-<version>.exe" --title v<version> --notes "..."
+gh release create v<version> "dist\journeydrive-<version>.exe" --title v<version> --notes "..."
 ```
 
 **Remember to rebuild and publish a new release after any change to
@@ -149,8 +149,8 @@ the Python code can fix.
 
 ## Troubleshooting
 
-**`Access is denied` deleting a `journeycapture-<version>.dist-info` folder during
-`uv sync`.** This repo lives under `OneDrive\Desktop\JourneyCapture` for most
+**`Access is denied` deleting a `journeydrive-<version>.dist-info` folder during
+`uv sync`.** This repo lives under `OneDrive\Desktop\JourneyDrive` for most
 contributors, and OneDrive's sync engine grabs a file handle on newly-written files
 right as `uv` tries to delete/replace them during a reinstall — a race, not a real
 permissions problem. Fix by rebuilding `.venv` from scratch:

@@ -6,11 +6,11 @@ import dataclasses
 import logging
 import sys
 
-from journeycapture_mcp.client import JourneyCaptureClient, JourneyCaptureError
-from journeycapture_mcp.config import ConfigError, load_settings
-from journeycapture_mcp.logging_setup import configure_logging
-from journeycapture_mcp.server import build_server
-from journeycapture_windows_thinclient.tls_pinning import CertificateFingerprintMismatch
+from journeydrive_mcp.client import JourneyDriveClient, JourneyDriveError
+from journeydrive_mcp.config import ConfigError, load_settings
+from journeydrive_mcp.logging_setup import configure_logging
+from journeydrive_mcp.server import build_server
+from journeydrive_windows_thinclient.tls_pinning import CertificateFingerprintMismatch
 
 __all__ = ["main"]
 
@@ -18,12 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="journeycapture-mcp")
+    parser = argparse.ArgumentParser(prog="journeydrive-mcp")
     parser.add_argument(
         "--config",
         default=None,
         help="Path to a JSON config file (e.g. scripts/mcp/mcp_config.json) with broker_host/broker_api_key/etc. "
-        "Overrides the JOURNEYCAPTURE_* environment variables when given.",
+        "Overrides the JOURNEYDRIVE_* environment variables when given.",
     )
     return parser.parse_args(argv)
 
@@ -35,28 +35,28 @@ def main() -> None:
     try:
         settings = load_settings(args.config)
     except ConfigError as e:
-        print(f"journeycapture-mcp: {e}", file=sys.stderr)
+        print(f"journeydrive-mcp: {e}", file=sys.stderr)
         sys.exit(1)
 
     logger.info("Configured for broker %s:%s, listening on %s:%s", settings.broker_host, settings.broker_port, settings.mcp_host, settings.mcp_port)
 
     try:
-        client = JourneyCaptureClient(settings)
+        client = JourneyDriveClient(settings)
     except CertificateFingerprintMismatch as e:
         # Not recoverable by retrying — either broker_cert_fingerprint in config is
         # wrong, or the broker's certificate was regenerated without updating it.
         logger.error("%s", e)
-        print(f"journeycapture-mcp: {e}", file=sys.stderr)
+        print(f"journeydrive-mcp: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Broker-owned operational config (see docs/BROKER.md's "Broker-pushed
     # config") overrides the matching local fields, fetched once at startup — not
     # a hard requirement to start, since the broker being briefly unreachable here
     # shouldn't block this server from listening at all; every tool call already
-    # handles a broker that's down the same way (a normal JourneyCaptureError).
+    # handles a broker that's down the same way (a normal JourneyDriveError).
     try:
         pushed = asyncio.run(client.get_mcp_config())
-    except JourneyCaptureError as e:
+    except JourneyDriveError as e:
         logger.warning("could not fetch broker-pushed config, using local settings only: %s", e)
         pushed = {}
     if pushed:

@@ -87,41 +87,41 @@ def _load_settings_from_file(path: Path) -> Settings:
 
 
 def _load_settings_from_env() -> Settings:
-    broker_host = os.environ.get("JOURNEYCAPTURE_BROKER_HOST")
+    broker_host = os.environ.get("JOURNEYDRIVE_BROKER_HOST")
     if not broker_host:
-        raise ConfigError("JOURNEYCAPTURE_BROKER_HOST is required (the broker's IP or hostname)")
+        raise ConfigError("JOURNEYDRIVE_BROKER_HOST is required (the broker's IP or hostname)")
 
-    broker_api_key = os.environ.get("JOURNEYCAPTURE_BROKER_API_KEY")
+    broker_api_key = os.environ.get("JOURNEYDRIVE_BROKER_API_KEY")
     if not broker_api_key:
-        raise ConfigError("JOURNEYCAPTURE_BROKER_API_KEY is required (must match the broker's own config)")
+        raise ConfigError("JOURNEYDRIVE_BROKER_API_KEY is required (must match the broker's own config)")
 
-    broker_port_raw = os.environ.get("JOURNEYCAPTURE_BROKER_PORT", "8600")
+    broker_port_raw = os.environ.get("JOURNEYDRIVE_BROKER_PORT", "8600")
     try:
         broker_port = int(broker_port_raw)
     except ValueError as e:
-        raise ConfigError(f"JOURNEYCAPTURE_BROKER_PORT must be an integer, got {broker_port_raw!r}") from e
+        raise ConfigError(f"JOURNEYDRIVE_BROKER_PORT must be an integer, got {broker_port_raw!r}") from e
 
-    broker_scheme = os.environ.get("JOURNEYCAPTURE_BROKER_SCHEME", "http")
-    broker_cert_fingerprint = os.environ.get("JOURNEYCAPTURE_BROKER_CERT_FINGERPRINT")
+    broker_scheme = os.environ.get("JOURNEYDRIVE_BROKER_SCHEME", "http")
+    broker_cert_fingerprint = os.environ.get("JOURNEYDRIVE_BROKER_CERT_FINGERPRINT")
     _validate_broker_scheme_and_fingerprint(broker_scheme, broker_cert_fingerprint)
 
-    mcp_host = os.environ.get("JOURNEYCAPTURE_MCP_HOST", "127.0.0.1")
+    mcp_host = os.environ.get("JOURNEYDRIVE_MCP_HOST", "127.0.0.1")
 
-    mcp_port_raw = os.environ.get("JOURNEYCAPTURE_MCP_PORT", "8000")
+    mcp_port_raw = os.environ.get("JOURNEYDRIVE_MCP_PORT", "8000")
     try:
         mcp_port = int(mcp_port_raw)
     except ValueError as e:
-        raise ConfigError(f"JOURNEYCAPTURE_MCP_PORT must be an integer, got {mcp_port_raw!r}") from e
+        raise ConfigError(f"JOURNEYDRIVE_MCP_PORT must be an integer, got {mcp_port_raw!r}") from e
 
-    save_screenshots = os.environ.get("JOURNEYCAPTURE_MCP_SAVE_SCREENSHOTS", "").lower() in ("1", "true", "yes")
-    screenshot_dir = os.environ.get("JOURNEYCAPTURE_MCP_SCREENSHOT_DIR", "screenshots")
+    save_screenshots = os.environ.get("JOURNEYDRIVE_MCP_SAVE_SCREENSHOTS", "").lower() in ("1", "true", "yes")
+    screenshot_dir = os.environ.get("JOURNEYDRIVE_MCP_SCREENSHOT_DIR", "screenshots")
 
-    max_saved_raw = os.environ.get("JOURNEYCAPTURE_MCP_MAX_SAVED_SCREENSHOTS", "100")
+    max_saved_raw = os.environ.get("JOURNEYDRIVE_MCP_MAX_SAVED_SCREENSHOTS", "100")
     try:
         max_saved_screenshots = int(max_saved_raw)
     except ValueError as e:
         raise ConfigError(
-            f"JOURNEYCAPTURE_MCP_MAX_SAVED_SCREENSHOTS must be an integer, got {max_saved_raw!r}"
+            f"JOURNEYDRIVE_MCP_MAX_SAVED_SCREENSHOTS must be an integer, got {max_saved_raw!r}"
         ) from e
 
     return Settings(

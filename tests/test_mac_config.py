@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from journeycapture_mac_thinclient.config import ConfigError, load_config
+from journeydrive_mac_thinclient.config import ConfigError, load_config
 
 
 def write_config(tmp_path: Path, data: dict) -> Path:
@@ -31,7 +31,7 @@ def test_valid_config_parses_with_defaults(tmp_path: Path) -> None:
     assert config.screenshot.format == "png"
     assert config.screenshot.quality == 75
     assert config.log_level == "INFO"
-    assert config.log_file == "journeycapture-mac.log"
+    assert config.log_file == "journeydrive-mac.log"
 
 
 def test_missing_file_raises(tmp_path: Path) -> None:
