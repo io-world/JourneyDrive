@@ -1,0 +1,14 @@
+{
+  "name": "hello-notepad",
+  "machine": "192.168.87.99",
+  "steps": [
+    {
+      "goal": "Open Notepad",
+      "success": "An empty Notepad window is in front"
+    },
+    {
+      "goal": "Type 'Hello from JourneyDrive' into Notepad",
+      "success": "The text 'Hello from JourneyDrive' is visible in the Notepad window"
+    }
+  ]
+}

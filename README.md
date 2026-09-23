@@ -21,6 +21,9 @@ MCP client  --stdio/HTTP-->  MCP server  --HTTP-->  broker  <--WebSocket--  Wind
 - **MCP server** (`journeydrive-mcp`) — exposes the broker's API as MCP tools for
   an MCP-aware assistant.
 
+Optionally, **automation** (`journeydrive-automation`) runs a JSON script of goals
+on a machine unattended, talking to the broker directly — see [Automation](#automation).
+
 Each runs on its own machine (thin clients: the Windows/Mac box; broker and MCP
 server: typically the controller machine, though nothing requires that).
 
@@ -168,6 +171,36 @@ uv run journeydrive-mcp --config scripts/mcp/mcp_config.json
 Then point your MCP client at `http://127.0.0.1:8000/mcp`. See
 [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for configuration options, the `machine`
 parameter every tool takes, and wiring it into an MCP client.
+
+## Automation
+
+Runs a JSON script of goals on one machine, start to finish: an agent works out
+the clicks and keystrokes from screenshots, and a separate reviewer confirms each
+step from the screen before moving on. Needs the broker running and the target
+machine's thin client connected; the MCP server doesn't need to be running.
+
+**First-time setup** (once):
+
+```
+uv sync --extra automation
+```
+
+It also needs a Claude API credential: put `ANTHROPIC_API_KEY=sk-ant-...` in a
+`.env` file in the repo root (gitignored), export it in your shell, or run
+`ant auth login` once. Unlike the broker and MCP server, the automation calls
+Claude itself — there's no MCP client in the loop to supply one. It reuses the MCP server's broker connection config
+(`scripts/mcp/mcp_config.json`).
+
+**Run it:**
+
+```
+uv run journeydrive-automation examples/automation.example.json --config scripts/mcp/mcp_config.json --machine office-pc
+```
+
+Everything it writes goes into `logs/`: a combined `journeydrive-automation.log`,
+plus one folder per run with that run's console log, every action, every
+screenshot, and the reviewer's verdicts. See [docs/AUTOMATION.md](docs/AUTOMATION.md) for the script
+format, how it keeps the model on track, and cost.
 
 ## Adding a new agent for another OS
 

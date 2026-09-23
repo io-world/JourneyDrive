@@ -10,6 +10,7 @@ wheels/
 .venv
 
 # Runtime files (contain secrets / local state, not for version control)
+.env
 config.json
 mcp_config.json
 broker_config.json
@@ -22,6 +23,7 @@ broker_cert.pem
 broker_key.pem
 scripts/click_test_*.jpg
 /screenshots/
+/logs/
 
 # Personal scratch notes, not for version control
 /LocalNotes.md

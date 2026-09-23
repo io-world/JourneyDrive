@@ -2,6 +2,36 @@
 
 Notable changes to JourneyDrive, newest first. Commit hashes refer to `main`.
 
+## 2026-09-22 — Add `journeydrive-automation`: unattended JSON goal scripts
+
+New controller-side package `journeydrive_automation` (`uv sync --extra
+automation`, command `journeydrive-automation`) that runs a JSON script of
+plain-language goal steps on one machine, start to finish, through the broker's
+HTTP API. A LangGraph state machine drives Claude (official `anthropic` SDK,
+`claude-opus-5`) through observe → act loops, with a separate verifier call
+judging each step's success check from a screenshot. Built around keeping the
+model on task: fresh context per step, the goal restated every turn, hard action
+budgets with clean-context retries, stall detection, and a `step_failed` escape
+hatch. Everything it writes lands in `logs/`: a combined
+`journeydrive-automation.log` (including startup failures and crash tracebacks)
+plus one replayable folder per run. See `docs/AUTOMATION.md`. Its Claude API key comes from a gitignored repo-root `.env` (via `python-dotenv`),
+the shell environment, or an `ant auth login` profile — checked before the run
+connects to anything.
+
+`journeydrive_mcp.server`'s monitor-resolution and crosshair helpers moved to a
+new `journeydrive_mcp.geometry` module (no behavior change) so the automation
+resolves `fx`/`fy` with the same code.
+
+Two example scripts: `automation.example.json` (2 steps, Notepad) and
+`automation.browse-and-note.example.json` (7 steps across Chrome and Notepad,
+ending with cleanup). Verified live against a Windows machine: the 2-step script
+passes (~$0.22-0.43 per run). The 7-step script passed steps 1-5 and failed on
+step 6 because the verifier wrongly rejected a correctly closed tab — a known
+issue with planned fixes, in `docs/AUTOMATION.md`'s "Known issues".
+
+Tests: 231 pass with all extras; with only base dependencies (what the
+thin-client build scripts install) the controller-only test files skip cleanly.
+
 ## 2026-09-22 — Split the thin client example config per OS; add an MCP example config
 
 `examples/` now has one template per component, each named for what it

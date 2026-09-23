@@ -29,19 +29,32 @@ broker = [
     "uvicorn[standard]>=0.52.4",
     "websockets>=13.0",
 ]
+# Controller-side only (runs journeydrive-automation). Pulls in the mcp extra
+# because journeydrive_automation reuses journeydrive_mcp.client, and importing
+# anything from journeydrive_mcp runs its __init__, which imports the MCP SDK.
+automation = [
+    "anthropic>=1.8.0",
+    "journeydrive[mcp]",
+    "langgraph>=1.2.2",
+    "python-dotenv>=1.2.3",
+]
 
 [project.scripts]
 journeydrive-win = "journeydrive_windows_thinclient:main"
 journeydrive-mac = "journeydrive_mac_thinclient:main"
 journeydrive-mcp = "journeydrive_mcp:main"
 journeydrive-broker = "journeydrive_broker:main"
+journeydrive-automation = "journeydrive_automation:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["journeydrive_windows_thinclient", "journeydrive_mac_thinclient", "journeydrive_mcp", "journeydrive_broker"]
+module-name = ["journeydrive_windows_thinclient", "journeydrive_mac_thinclient", "journeydrive_mcp", "journeydrive_broker", "journeydrive_automation"]
+
+[tool.uv.sources]
+journeydrive = { workspace = true }
 
 [dependency-groups]
 dev = [

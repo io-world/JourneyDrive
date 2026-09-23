@@ -35,16 +35,22 @@ MCP client  --stdio/HTTP-->  journeydrive_mcp  --HTTP-->  journeydrive_broker  <
   tools, one `machine` parameter per tool. Runs on the *controller* machine
   (wherever your MCP client is). See `docs/MCP_SERVER.md`.
 
+A fifth, optional controller-side package, **`journeydrive_automation`**, runs a
+JSON goal script unattended by talking to the broker's HTTP API directly (no MCP
+server involved) — see "`journeydrive_automation`" below and `docs/AUTOMATION.md`.
+
 ## Commands
 
 ```
 uv sync                    # install deps for both thin clients (creates .venv)
 uv sync --extra broker     # also install deps for the broker (controller-side only)
 uv sync --extra mcp        # also install deps for the MCP server (controller-side only)
+uv sync --extra automation # also install deps for journeydrive-automation (controller-side only)
 uv run journeydrive-win  # run the Windows thin client from source (needs config.json - see below)
 uv run journeydrive-mac  # run the macOS thin client from source (needs config.json - see below)
 uv run journeydrive-broker --config scripts/broker/broker_config.json  # run the broker
 uv run journeydrive-mcp --config scripts/mcp/mcp_config.json  # run the MCP server
+uv run journeydrive-automation SCRIPT.json --config scripts/mcp/mcp_config.json  # run an automation script
 uv run pytest -q           # run the full test suite
 uv run pytest tests/test_config.py::test_valid_config_parses_with_defaults  # run a single test
 ```
@@ -487,3 +493,51 @@ Lives in `src/journeydrive_mcp/`. Its dependencies (`mcp`, `httpx`) sit under th
   if `JOURNEYDRIVE_MCP_HOST` were ever pointed at a non-loopback address.
 
 Full setup/config/testing details: `docs/MCP_SERVER.md`.
+
+### `journeydrive_automation` — unattended goal scripts
+
+Lives in `src/journeydrive_automation/`; dependencies (`langgraph`, `anthropic`,
+plus `journeydrive[mcp]`) sit under the `automation` extra. Reuses
+`journeydrive_mcp.client.JourneyDriveClient` and `journeydrive_mcp.config.load_settings`
+(same broker connection config file as the MCP server), so it needs the `mcp`
+extra too — importing anything from `journeydrive_mcp` runs its `__init__`, which
+imports the MCP SDK.
+
+- **`graph.py`** — the LangGraph state machine: `start_step` → `observe` → `guard`
+  → `agent` → `act`/`verify`/`attempt_failed`, one goal step at a time. The
+  anti-drift guardrails are the point of this design, not incidental — fresh
+  context per step (earlier steps survive only as one-line summaries), the goal
+  restated on every observation, hard per-attempt action budgets with
+  clean-context retries, stall detection (repeated action / unchanged screen
+  fingerprint), and an independent verifier call that sees only the goal, success
+  check and a screenshot. See `docs/AUTOMATION.md`'s "Keeping the model on track"
+  before loosening any of them.
+- **`llm.py`** — the only place that calls Claude, via the official `anthropic`
+  SDK (`AsyncAnthropic().beta.messages.create`), not LangChain's model wrappers —
+  LangGraph is used for orchestration only. `ClaudeLLM` is injected into the
+  graph so tests use a scripted fake (`tests/test_automation_graph.py`) and never
+  call the API. Server-side refusal fallbacks (`fallbacks="default"`) and context
+  editing (old screenshots cleared) are both on.
+- **`tools.py`** — the agent's deliberately small tool surface (UI actions,
+  `preview_click`, `step_complete`/`step_failed`), always in `fx`/`fy` fractions,
+  resolved with `journeydrive_mcp.geometry` — the helpers extracted out of
+  `journeydrive_mcp.server` so both share one implementation. There's no
+  paste-with-the-right-modifier tool because the broker doesn't report a machine's
+  OS; the agent pastes with `send_keys` and picks ctrl or cmd from the screen.
+- **`runlog.py`** — everything lands under `logs/` (`--log-dir`):
+  `journeydrive-automation.log` (every run, plus startup failures and crash
+  tracebacks) and one `<timestamp>_<name>/` folder per run (`run.log`,
+  `events.jsonl`, every image the model saw, `summary.json`). Same privacy
+  carve-out as everywhere else: `type_text`/`set_clipboard` text is logged as a
+  character count only.
+- **`script.py`** — the script's pydantic models, `extra="forbid"` like every
+  other config here.
+- **Known issue** — the verifier can wrongly reject steps that *remove*
+  something (closing a tab), judging the goal instead of the success check; see
+  `docs/AUTOMATION.md`'s "Known issues" for the observed failure and the planned
+  fixes before changing the verifier prompt or `guard`.
+- **Claude credential** — the one secret here that isn't JourneyDrive's own:
+  `ANTHROPIC_API_KEY`, loaded by `python-dotenv` from the gitignored repo-root
+  `.env` (shell env wins), or an `ant auth login` profile. `main` checks
+  `ClaudeLLM.has_credentials()` before touching the broker, since the SDK only
+  fails with a bare `TypeError` at the first request.

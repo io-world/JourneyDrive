@@ -1,0 +1,35 @@
+{
+  "name": "browse-and-note",
+  "machine": "192.168.87.99",
+  "max_actions_per_step": 12,
+  "steps": [
+    {
+      "goal": "Open Google Chrome",
+      "success": "A Google Chrome window is in front"
+    },
+    {
+      "goal": "Open a new Chrome tab and go to example.com",
+      "success": "The active Chrome tab shows a page with the heading 'Example Domain', and the address bar shows example.com"
+    },
+    {
+      "goal": "Click the link on the Example Domain page",
+      "success": "The active Chrome tab shows a page on iana.org (the address bar contains iana.org)"
+    },
+    {
+      "goal": "Open Notepad and start a new, empty tab",
+      "success": "Notepad is in front and its active tab is empty (the status bar shows 0 characters)"
+    },
+    {
+      "goal": "Type two lines into the empty Notepad tab: 'JourneyDrive demo' on the first line and 'Visited example.com, then followed its link to iana.org' on the second",
+      "success": "The active Notepad tab shows 'JourneyDrive demo' on line 1 and 'Visited example.com, then followed its link to iana.org' on line 2"
+    },
+    {
+      "goal": "Close the Notepad tab you just typed in without saving it (choose 'Don't save' if asked)",
+      "success": "No Notepad tab showing 'JourneyDrive demo' is open, and no save dialog is showing"
+    },
+    {
+      "goal": "Close the Chrome tab showing iana.org",
+      "success": "No Chrome tab showing iana.org is visible, and no dialog is showing"
+    }
+  ]
+}

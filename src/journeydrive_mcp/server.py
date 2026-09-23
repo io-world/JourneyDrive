@@ -8,10 +8,10 @@ from typing import Literal
 
 from mcp.server.mcpserver import Image, MCPServer
 from PIL import Image as PILImage
-from PIL import ImageDraw
 
 from journeydrive_mcp.client import JourneyDriveClient
 from journeydrive_mcp.config import Settings
+from journeydrive_mcp.geometry import default_monitor_index, draw_crosshair, fraction_to_pixel, resolve_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -60,13 +60,6 @@ def build_server(client: JourneyDriveClient, settings: Settings) -> MCPServer:
             # actual take_screenshot call.
             logger.warning("failed to save/prune screenshot copies: %s", e)
 
-    def _resolve_monitor(monitors: list[dict], index: int | None) -> dict:
-        resolved_index = index if index is not None else (1 if len(monitors) > 1 else 0)
-        try:
-            return monitors[resolved_index]
-        except IndexError:
-            raise ValueError(f"monitor index {resolved_index} out of range (0..{len(monitors) - 1})") from None
-
     async def _resolve_xy(
         machine: str,
         x: int | None,
@@ -92,36 +85,7 @@ def build_server(client: JourneyDriveClient, settings: Settings) -> MCPServer:
         if have_xy:
             return x, y
         monitors = await client.list_monitors(machine)
-        target = _resolve_monitor(monitors, monitor)
-        return target["left"] + round(fx * target["width"]), target["top"] + round(fy * target["height"])
-
-    def _draw_crosshair(data: bytes, marker_x: int, marker_y: int) -> bytes:
-        with PILImage.open(io.BytesIO(data)) as img:
-            img = img.convert("RGB")
-            marker_x = max(0, min(img.width - 1, marker_x))
-            marker_y = max(0, min(img.height - 1, marker_y))
-            draw = ImageDraw.Draw(img)
-            color = (255, 0, 255)  # magenta — visible against most desktop backgrounds
-            outline = (0, 0, 0)
-            # Scale marker so it stays visible when the image is rendered small in a chat UI.
-            s = max(img.width, img.height) / 1000
-            size, half_width, gap = max(14, int(22 * s)), max(5, int(8 * s)), max(4, int(5 * s))
-            # Four filled arrowheads pointing at the target, not a thin-line cross —
-            # a solid fill survives JPEG block compression far better than a 1-3px
-            # line, which is what made the old crosshair blur into the background.
-            arrows = [
-                [(marker_x, marker_y - gap), (marker_x - half_width, marker_y - gap - size), (marker_x + half_width, marker_y - gap - size)],  # top, points down
-                [(marker_x, marker_y + gap), (marker_x - half_width, marker_y + gap + size), (marker_x + half_width, marker_y + gap + size)],  # bottom, points up
-                [(marker_x - gap, marker_y), (marker_x - gap - size, marker_y - half_width), (marker_x - gap - size, marker_y + half_width)],  # left, points right
-                [(marker_x + gap, marker_y), (marker_x + gap + size, marker_y - half_width), (marker_x + gap + size, marker_y + half_width)],  # right, points left
-            ]
-            for triangle in arrows:
-                draw.polygon(triangle, fill=color, outline=outline, width=2)
-            r = max(2, int(3 * s))
-            draw.ellipse([marker_x - r, marker_y - r, marker_x + r, marker_y + r], fill=color)
-            out = io.BytesIO()
-            img.save(out, format="PNG")
-            return out.getvalue()
+        return fraction_to_pixel(resolve_monitor(monitors, monitor), fx, fy)
 
     @server.tool()
     async def list_machines() -> list[dict]:
@@ -164,7 +128,7 @@ def build_server(client: JourneyDriveClient, settings: Settings) -> MCPServer:
             if None in (fx1, fy1, fx2, fy2):
                 raise ValueError("fx1, fy1, fx2, and fy2 must all be provided together for region crop.")
             monitors = await client.list_monitors(machine)
-            target = _resolve_monitor(monitors, monitor)
+            target = resolve_monitor(monitors, monitor)
             w, h = target["width"], target["height"]
             x1, y1 = round(fx1 * w), round(fy1 * h)
             x2, y2 = round(fx2 * w), round(fy2 * h)
@@ -203,7 +167,7 @@ def build_server(client: JourneyDriveClient, settings: Settings) -> MCPServer:
     ) -> list:
         """Preview where click_mouse would land, WITHOUT clicking: takes a fresh screenshot and draws a magenta crosshair at the resolved x/y (pixels) or fx/fy (fraction 0.0-1.0) position. Use this before click_mouse on small or ambiguous targets (tabs, sidebar thumbnails, anything near another clickable element) to visually confirm the marker actually lands on the intended target — a fraction estimated by eye from a screenshot has no other way to be verified before the click commits. If the marker is off-target, adjust fx/fy and call this again rather than guessing a correction; only call click_mouse once the marker looks right. monitor selects which monitor fx/fy is relative to (default: the primary physical monitor, same as list_monitors index 1) — the same monitor is used both to resolve the coordinate and to capture the screenshot, so the marker is always positioned consistently with the image."""
         monitors = await client.list_monitors(machine)
-        resolved_monitor = monitor if monitor is not None else (1 if len(monitors) > 1 else 0)
+        resolved_monitor = monitor if monitor is not None else default_monitor_index(monitors)
         resolved_x, resolved_y = await _resolve_xy(machine, x, y, fx, fy, resolved_monitor)
         logger.info(
             "preview_click machine=%s x=%s y=%s fx=%s fy=%s monitor=%s -> resolved (%s, %s)",
@@ -214,7 +178,7 @@ def build_server(client: JourneyDriveClient, settings: Settings) -> MCPServer:
             target = monitors[resolved_monitor]
         except IndexError:
             raise ValueError(f"monitor index {resolved_monitor} out of range (0..{len(monitors) - 1})") from None
-        annotated = _draw_crosshair(data, resolved_x - target["left"], resolved_y - target["top"])
+        annotated = draw_crosshair(data, resolved_x - target["left"], resolved_y - target["top"])
         fx_resolved = (resolved_x - target["left"]) / target["width"]
         fy_resolved = (resolved_y - target["top"]) / target["height"]
         return [

@@ -45,6 +45,17 @@ Controller-side only. Install with `uv sync --extra mcp`; see `docs/MCP_SERVER.m
 | `mcp` | The official MCP Python SDK — `MCPServer`/`Image` (`server.py`) build the actual MCP tool server and its streamable-HTTP transport. |
 | `httpx` | `client.py`'s `JourneyDriveClient` — an async HTTP client that calls the broker's HTTP API over the network. |
 
+## Automation (`journeydrive_automation`) — `automation` optional-dependency group
+
+Controller-side only. Install with `uv sync --extra automation`; see `docs/AUTOMATION.md`.
+
+| Library | Used for |
+|---|---|
+| `langgraph` | The run's state machine (`graph.py`): nodes for observe/agent/act/guard/verify and the conditional edges between them. Only the orchestration — no LangChain model wrappers. |
+| `anthropic` | The official Anthropic SDK — `llm.py`'s agent and verifier calls (`AsyncAnthropic().beta.messages.create`, for refusal fallbacks and context editing). |
+| `python-dotenv` | Loads `ANTHROPIC_API_KEY` from the gitignored repo-root `.env` at startup (`__init__._run`); a variable already set in the shell wins. |
+| `journeydrive[mcp]` | Pulls in the `mcp` extra: the automation reuses `journeydrive_mcp.client`/`config`/`geometry`, and importing anything from `journeydrive_mcp` runs its `__init__`, which imports the MCP SDK. |
+
 ## Dev tooling — `dependency-groups.dev`
 
 Not needed to run any of the three components, only to develop/test/build them.
